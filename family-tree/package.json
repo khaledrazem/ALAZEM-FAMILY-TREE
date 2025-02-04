@@ -1,0 +1,35 @@
+{
+  "name": "family-tree",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "watch": "npm-watch"
+  },
+  "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
+    "@mui/material": "^6.4.2",
+    "dotenv": "^16.4.7",
+    "family-chart": "^0.2.1",
+    "next": "15.1.6",
+    "npm-watch": "^0.13.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-hook-form": "^7.54.2"
+  },
+  "watch": {
+    "build": {
+      "patterns": [
+        "pages"
+      ],
+      "extensions": "js,jsx"
+    }
+  },
+  "devDependencies": {
+    "@svgr/webpack": "^8.1.0"
+  }
+}

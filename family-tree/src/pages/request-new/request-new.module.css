@@ -1,0 +1,9 @@
+.user{
+    width: 100%;
+    position: sticky;
+    height: 10vh;
+    background: black;
+    z-index: 999;
+
+}
+

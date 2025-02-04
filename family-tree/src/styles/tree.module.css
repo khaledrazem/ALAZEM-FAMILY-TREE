@@ -1,0 +1,11 @@
+.container{
+    width: 100vw;
+    height: 100vh;
+
+    
+  }
+  
+  
+  .container :global(.f3.f3-cont) {
+    max-height: 100vh !important;
+  }

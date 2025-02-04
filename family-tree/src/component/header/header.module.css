@@ -1,0 +1,14 @@
+.header{
+    width: 100%;
+    position: sticky;
+    height: 10vh;
+    background: black;
+    z-index: 999;
+
+}
+
+.header h2 {
+    color: white;
+    text-align: center;
+    padding: 1rem;
+}
