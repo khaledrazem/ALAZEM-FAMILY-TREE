@@ -34,10 +34,11 @@ export default function FamilyTree() {
           .setCardXSpacing(450)
           .setCardYSpacing(450)
           .setOrientationVertical()
-      
+                
         const f3Card = f3Chart.setCard(f3.CardHtml)
-          .setCardDisplay([["first name","last name"],["birthday"]])
-          .setCardDim({})
+          .setCardDisplay([["first name","last name"],["birthDay"]])
+          .setCardDim({
+          })
           .setStyle('custom')
           .setOnHoverPathToMain();
       
@@ -45,7 +46,11 @@ export default function FamilyTree() {
           toUserPage(d.data.id);
         });
       
-        f3Chart.updateTree({initial: true});
+        f3Chart
+          .updateTree({
+            initial: true,
+            method: 'fit'
+          });
         
         // Store chart reference for cleanup
         chartRef.current = f3Chart;
@@ -61,7 +66,8 @@ export default function FamilyTree() {
                       "desc": "Father of the Alazem family",
                       "label": "Reyad Alazem",
                       "gender": "M",
-                      "birthYear": 1971
+                      "birthDay": 1971,
+                      "avatar": "https://i.postimg.cc/TyV8CgRc/20240609-135001.jpg"
                   },
                   "rels": {
                       "father": "P3",
@@ -78,7 +84,9 @@ export default function FamilyTree() {
                       "desc": "Mother of the Alazem family",
                       "label": "Salma Alazem",
                       "gender": "F",
-                      "birthYear": 1976
+                      "birthDay": 1976,
+                      "avatar": "https://i.postimg.cc/JyVVNPWn/Clipped-image-20240104-204621.png"
+
                   },
                   "rels": {
                       "father": "P5",
@@ -96,7 +104,9 @@ export default function FamilyTree() {
                       "desc": "Eldest son",
                       "label": "Khaled Alazem",
                       "gender": "M",
-                      "birthYear": 2000
+                      "birthDay": 2000,
+                      "avatar": "https://i.postimg.cc/WdJcqxCC/20250120-151848.jpg"
+
                   },
                   "rels": {
                       "father": "P1",
@@ -111,7 +121,9 @@ export default function FamilyTree() {
                       "desc": "Daughter",
                       "label": "Fatima Alazem",
                       "gender": "F",
-                      "birthYear": 2005
+                      "birthDay": 2005,
+                      "avatar": "https://i.postimg.cc/mtnGDTX7/20241226-144505.jpg"
+
                   },
                   "rels": {
                       "father": "P1",
@@ -126,7 +138,7 @@ export default function FamilyTree() {
                       "desc": "Daughter",
                       "label": "Rama Alazem",
                       "gender": "F",
-                      "birthYear": 2007
+                      "birthDay": 2007
                   },
                   "rels": {
                       "father": "P1",
@@ -141,7 +153,7 @@ export default function FamilyTree() {
                       "desc": "Daughter",
                       "label": "Leen Alazem",
                       "gender": "F",
-                      "birthYear": 2011
+                      "birthDay": 2011
                   },
                   "rels": {
                       "father": "P1",
@@ -156,7 +168,7 @@ export default function FamilyTree() {
                       "desc": "Youngest son",
                       "label": "Abdularahman Alazem",
                       "gender": "M",
-                      "birthYear": 2015
+                      "birthDay": 2015
                   },
                   "rels": {
                       "father": "P1",
@@ -171,7 +183,7 @@ export default function FamilyTree() {
                       "desc": "Father of Reyad Alazazem",
                       "label": "Khaled Alazem",
                       "gender": "M",
-                      "birthYear": 1953
+                      "birthDay": 1953
                   },
                   "rels": {
                       "spouses": ["P4"],
@@ -186,7 +198,7 @@ export default function FamilyTree() {
                       "desc": "Mother of Reyad Alazazem",
                       "label": "Salma Alazem",
                       "gender": "F",
-                      "birthYear": 1953
+                      "birthDay": 1953
                   },
                   "rels": {
                       "spouses": ["P3"],
@@ -201,11 +213,13 @@ export default function FamilyTree() {
                     "desc": "Father of Salma Alazem",
                     "label": "Mohammad Ali",
                     "gender": "M",
-                    "birthYear": 1951
+                    "birthDay": 1951
                 },
                 "rels": {
                     "spouses": ["P6"],
-                    "children": ["P2"]
+                    "children": ["P2"],
+                    "father": null,
+                    "mother": null
                 }
             },
               {
@@ -216,11 +230,13 @@ export default function FamilyTree() {
                       "desc": "Mother of Salma Alazem",
                       "label": "Fatima Keylani",
                       "gender": "F",
-                      "birthYear": 1952
+                      "birthDay": 1952
                   },
                   "rels": {
                       "spouses": ["P5"],
-                      "children": ["P2"]
+                      "children": ["P2"],
+                      "father": null,
+                      "mother": null
                   }
               },
            
