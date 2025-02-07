@@ -1,11 +1,26 @@
 import React, { useEffect, useState } from "react";
+import styles from './file-upload-box.module.css';
 
-//This component creates a box to upload a number of images, to use it, import it to your page and assign the following paramters
-//setImages(required): pass in the setter to your const object, this will directly assign to it a list of the uploaded files
-//MAX or MIN _FILE_SIZE(optional): by defult it is set to require files below 5 mb, to change that pass a different number with these parameters
-//MAX_IMAGES(optional): By default it will only accept 5 images, change this by using this parameter
-// <FileUploadBox setImages={setImages}></FileUploadBox>
-const  FileUploadBox = ({setImages = null, MAX_FILE_SIZE=5120, MIN_FILE_SIZE = 0, MAX_IMAGES=5, name, register, initialImages=[]}) => {
+/**
+ * FileUploadBox Component
+ * @param {Object} props
+ * @param {Function} props.setImages - Setter function for uploaded images
+ * @param {number} props.MAX_FILE_SIZE - Maximum file size in KB (default: 5120KB/5MB)
+ * @param {number} props.MIN_FILE_SIZE - Minimum file size in KB (default: 0KB)
+ * @param {number} props.MAX_IMAGES - Maximum number of images allowed (default: 5)
+ * @param {string} props.name - Form field name
+ * @param {Function} props.register - React Hook Form register function
+ * @param {Array} props.initialImages - Initial images to display
+ */
+const FileUploadBox = ({
+    setImages = null,
+    MAX_FILE_SIZE = 5120,
+    MIN_FILE_SIZE = 0,
+    MAX_IMAGES = 5,
+    name,
+    register,
+    initialImages = []
+}) => {
     const [selectedImages, setSelectedImages] = useState([]);
     const [fileErrorMsg, setFileErrorMsg] = useState(false);
 
@@ -84,76 +99,58 @@ const  FileUploadBox = ({setImages = null, MAX_FILE_SIZE=5120, MIN_FILE_SIZE = 0
     };
 
 return (
-    <div>
-        <div className="input-box pb--20">
-            <div className="row">
-                <div id="small-upload" className="img-upload-box">
-                    <div
-                        className="brows-file-wrapper"
-                        style={{
-                            height: "80px",
-                        }}
-                    >
-                        <input
-                            name="file"
-                            id="file"
-                            type="file"
-                            accept="image/vnd.sealedmedia.softseal.jpg, image/jpeg, image/png"
-                            data-multiple-caption="{count} files selected"
-                            {...register(name, {
-                                onChange: (event) => {
-                                    event.preventDefault;
-                                    fileSelectedHandler(event.target.files);
-                                    event.target.value = null;
-                                },
-                              })}
-                           
-                            style={{display:'none'}}
-                        />
-                        {selectedImages.length>0 && (
-                        
-                        <div className="img-upload-row">
-                        {selectedImages.map((image, i) =>
-                        <img
-                        alt="not found"
-                        title="Click to remove"
-                        width={"250px"}
-                        src={ isRawImage(image)? URL.createObjectURL(image): image}
-                        onClick= {(e) => {removeImage(image)}}
-                    /> )}
-                    {selectedImages.length<MAX_IMAGES &&(
-                        <label  htmlFor="file">
-                    <i className="feather-upload"/>
-                    </label>
-                    )}
-                        </div>
-                    )}
-                        {!selectedImages.length>0 && (
-                            <label
-                            htmlFor="file"
-                            title="No File Choosen"
-                            style={{
-                                height: "80px",
-                            }}
-                        >
-                            <p className="text-center mt--10">
-                                <i className="feather-upload" />
-                                &nbsp;&nbsp;&nbsp;Click to upload image.
-                            </p>
-                        </label>
+    <div className={styles['input-box']}>
+        <div className={styles['img-upload-box']}>
+            <div className={styles['brows-file-wrapper']}>
+                <input
+                    name="file"
+                    id="file"
+                    type="file"
+                    accept="image/vnd.sealedmedia.softseal.jpg, image/jpeg, image/png"
+                    data-multiple-caption="{count} files selected"
+                    {...register(name, {
+                        onChange: (event) => {
+                            event.preventDefault();
+                            fileSelectedHandler(event.target.files);
+                            event.target.value = null;
+                        },
+                    })}
+                    style={{ display: 'none' }}
+                />
+                
+                {selectedImages.length > 0 ? (
+                    <div className={styles['img-upload-row']}>
+                        {selectedImages.map((image, i) => (
+                            <img
+                                key={i}
+                                alt="Uploaded preview"
+                                title="Click to remove"
+                                src={isRawImage(image) ? URL.createObjectURL(image) : image}
+                                onClick={() => removeImage(image)}
+                            />
+                        ))}
+                        {selectedImages.length < MAX_IMAGES && (
+                            <label htmlFor="file">
+                                <i className={styles['feather-upload']} />
+                            </label>
                         )}
                     </div>
-                </div>
+                ) : (
+                    <label htmlFor="file" title="No File Chosen">
+                        <p>
+                            <i className={styles['feather-upload']} />
+                            <span>Click to upload image</span>
+                        </p>
+                    </label>
+                )}
             </div>
-            {fileErrorMsg  && 
-                <span className={clsx("text-danger mt-2 d-inline-block", className)}>
-                {fileErrorMsg}
-            </span>}
-            
         </div>
-      
-                          
         
+        {fileErrorMsg && (
+            <span className={styles['text-danger']}>
+                {fileErrorMsg}
+            </span>
+        )}
     </div>
 )
 

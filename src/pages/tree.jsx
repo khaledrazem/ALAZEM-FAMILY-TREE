@@ -28,7 +28,7 @@ export default class FamilyTree extends React.Component {
     function create(data) {
       const f3Chart = f3.createChart('#FamilyChart', data)
         .setTransitionTime(1000)
-        .setCardXSpacing(250)
+        .setCardXSpacing(450)
         .setCardYSpacing(150)
         .setOrientationVertical()
         .setSingleParentEmptyCard(true, {label: 'ADD'})

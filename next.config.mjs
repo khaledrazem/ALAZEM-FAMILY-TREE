@@ -8,6 +8,9 @@ const nextConfig = {
     return config;
   },
   reactStrictMode: true,
+  images: {
+    domains: ['example.com', 'dummyimage.com'],
+  },
 };
 
 export default nextConfig;

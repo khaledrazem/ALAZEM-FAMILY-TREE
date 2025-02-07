@@ -1,9 +1,191 @@
-.user{
-    width: 100%;
-    position: sticky;
-    height: 10vh;
-    background: black;
-    z-index: 999;
-
+.userform {
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: var(--spacing-xl);
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
+.userform > label {
+    display: block;
+    color: var(--warning);
+    font-size: var(--font-size-sm);
+    margin-bottom: var(--spacing-xl);
+    padding: var(--spacing-md);
+    background: rgba(245, 158, 11, 0.1);
+    border-radius: var(--radius-md);
+    border-left: 4px solid var(--warning);
+}
+
+.userinfo {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: var(--spacing-xl);
+    margin-bottom: var(--spacing-xl);
+}
+
+.avatar {
+    background: var(--surface-light);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-md);
+}
+
+.userdata {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+}
+
+.datarow {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.datarow > label {
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    color: var(--foreground);
+    text-transform: capitalize;
+}
+
+.datarow input[type="text"],
+.datarow input[type="email"],
+.datarow input[type="password"] {
+    background: var(--surface-light);
+    border: 1px solid transparent;
+    color: var(--foreground);
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-base);
+    transition: all 0.2s ease;
+}
+
+.datarow input[type="text"]:focus,
+.datarow input[type="email"]:focus,
+.datarow input[type="password"]:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
+    outline: none;
+}
+
+.datarow input[type="radio"],
+.datarow input[type="checkbox"] {
+    accent-color: var(--primary);
+    margin-right: var(--spacing-sm);
+}
+
+/* Radio button group styling */
+.datarow:has(input[type="radio"]) {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+.datarow:has(input[type="radio"]) > label:first-child {
+    margin-right: var(--spacing-md);
+}
+
+.datarow:has(input[type="radio"]) > label:not(:first-child) {
+    display: flex;
+    align-items: center;
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: var(--surface-light);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.datarow:has(input[type="radio"]) > label:not(:first-child):hover {
+    background: var(--surface);
+}
+
+/* MUI Autocomplete custom styling */
+.datarow :global(.MuiAutocomplete-root) {
+    width: 100% !important;
+}
+
+.datarow :global(.MuiInputBase-root) {
+    background: var(--surface-light);
+    border-radius: var(--radius-md);
+    color: var(--foreground);
+}
+
+.datarow :global(.MuiOutlinedInput-notchedOutline) {
+    border-color: transparent;
+}
+
+.datarow :global(.MuiInputLabel-root) {
+    color: var(--secondary);
+}
+
+.datarow :global(.MuiInputLabel-root.Mui-focused) {
+    color: var(--primary);
+}
+
+.datarow :global(.MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline) {
+    border-color: var(--primary);
+}
+
+.datarow :global(.MuiAutocomplete-tag) {
+    background: var(--primary);
+    color: var(--foreground);
+    border-radius: var(--radius-sm);
+}
+
+/* File upload area */
+.datarow:has(input[type="file"]) {
+    background: var(--surface-light);
+    padding: var(--spacing-lg);
+    border-radius: var(--radius-lg);
+    border: 2px dashed var(--surface);
+    transition: all 0.2s ease;
+}
+
+.datarow:has(input[type="file"]):hover {
+    border-color: var(--primary);
+}
+
+/* Submit button section */
+.buttons {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: var(--spacing-xl);
+    padding-top: var(--spacing-lg);
+    border-top: 1px solid var(--surface-light);
+}
+
+.buttons input[type="submit"] {
+    background: var(--primary);
+    color: var(--foreground);
+    border: none;
+    padding: var(--spacing-sm) var(--spacing-xl);
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-base);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.buttons input[type="submit"]:hover {
+    background: var(--primary-light);
+    transform: translateY(-1px);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .userinfo {
+        grid-template-columns: 1fr;
+    }
+
+    .avatar {
+        max-width: 300px;
+        margin: 0 auto;
+    }
+
+    .datarow:has(input[type="radio"]) {
+        flex-wrap: wrap;
+    }
+}

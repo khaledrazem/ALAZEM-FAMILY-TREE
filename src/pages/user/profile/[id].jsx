@@ -1,13 +1,9 @@
-
 import { useEffect, useState } from 'react';
 import styles from './profile.module.css';
-import { useRouter } from 'next/router'
-
-
+import { useRouter } from 'next/router';
 
 export default function UserPage() {
-  const router = useRouter()
-
+  const router = useRouter();
   const userID = router.query.id;
   const tempdata = data();
   const [siblings, setSiblings] = useState([]);
@@ -24,9 +20,7 @@ export default function UserPage() {
       getParents();
       getChildren();
     }
-  
   }, [userID]);
-
 
   function getSpouses() {
     //TODO: loop through data.rel.spouses and get data using each id
@@ -40,12 +34,11 @@ export default function UserPage() {
       }
     };
     setSpouses(prevSpouses => [...prevSpouses, updatedSpouses]);
-
   }
 
   function getSiblings() {
     //TODO: loop through data.rel.siblings and get data using each id
-    const siblingsUpdate ={
+    const siblingsUpdate = {
       "id": "0",
       "data": {
         "firstName": "Name",
@@ -86,74 +79,104 @@ export default function UserPage() {
   }
 
   return (
-
-
     <div className={styles.user}>
-      <div className={styles.header}>
+      <button className={styles.backButton} onClick={() => router.back()}>
+        Back
+      </button>
 
-        <label>{tempdata.data.firstName} {" "} {tempdata.data.lastName}</label>
+      <div className={styles.header}>
+        <label>{tempdata.data.firstName} {tempdata.data.lastName}</label>
       </div>
 
       <div className={styles.userinfo}>
         <div className={styles.avatar}>
-          <img src={tempdata.data.avatar} alt="avatar" />
+          <img src={tempdata.data.avatar} alt={`${tempdata.data.firstName}'s avatar`} />
         </div>
 
         <div className={styles.userdata}>
           <div className={styles.datarow}>
-            <label>Date of birth: {tempdata.data.birthday}</label>
+            <label>
+              <span className={styles['label-title']}>Date of birth:</span>
+              {tempdata.data.birthday}
+            </label>
           </div>
 
           <div className={styles.datarow}>
-            <label>Gender: {tempdata.data.gender == 'M' ? 'Male' : 'Female'}</label>
+            <label>
+              <span className={styles['label-title']}>Gender:</span>
+              {tempdata.data.gender === 'M' ? 'Male' : 'Female'}
+            </label>
           </div>
 
           <div className={styles.datarow}>
-            <label>Marital status: {tempdata.data.maritalStatus}</label>
+            <label>
+              <span className={styles['label-title']}>Marital status:</span>
+              {tempdata.data.maritalStatus}
+            </label>
           </div>
 
           <div className={styles.datarow}>
-            <label>Spouse: {spouses && spouses.length > 0 ? spouses[0].data.firstName + " " + spouses[0].data.lastName : "N/A"}</label>
+            <label>
+              <span className={styles['label-title']}>Spouse:</span>
+              {spouses && spouses.length > 0 
+                ? `${spouses[0].data.firstName} ${spouses[0].data.lastName}`
+                : "N/A"}
+            </label>
           </div>
 
-          {siblings && siblings.length ?
+          {siblings && siblings.length > 0 && (
             <div className={styles.datarow}>
-              <label>Siblings: {siblings.map((sibling) => {
-                <div>
-                  <label>{sibling.data.firstName} {" "} {sibling.data.lastName}</label>
+              <label>
+                <span className={styles['label-title']}>Siblings:</span>
+                <div className={styles.relatives}>
+                  {siblings.map((sibling) => (
+                    <span key={sibling.id} className={styles.relative}>
+                      {sibling.data.firstName} {sibling.data.lastName}
+                    </span>
+                  ))}
                 </div>
-              })}</label>
+              </label>
             </div>
-            : null}
+          )}
 
-          {parents && parents.length ?
+          {parents && parents.length > 0 && (
             <div className={styles.datarow}>
-              <label>Parents: {parents.map((parent) => {
-                <div>
-                  <label>{parent.data.firstName} {" "} {parent.data.lastName}</label>
+              <label>
+                <span className={styles['label-title']}>Parents:</span>
+                <div className={styles.relatives}>
+                  {parents.map((parent) => (
+                    <span key={parent.id} className={styles.relative}>
+                      {parent.data.firstName} {parent.data.lastName}
+                    </span>
+                  ))}
                 </div>
-              })}</label>
+              </label>
             </div>
-            : null}
+          )}
 
-          {children && children.length ?
+          {children && children.length > 0 && (
             <div className={styles.datarow}>
-              <label>Children: {children.map((child) => {
-                <div>
-                  <label>{child.data.firstName} {" "} {child.data.lastName}</label>
+              <label>
+                <span className={styles['label-title']}>Children:</span>
+                <div className={styles.relatives}>
+                  {children.map((child) => (
+                    <span key={child.id} className={styles.relative}>
+                      {child.data.firstName} {child.data.lastName}
+                    </span>
+                  ))}
                 </div>
-              })}</label>
+              </label>
             </div>
-            : null}
+          )}
         </div>
       </div>
+
       <div className={styles.buttons}>
         <button onClick={() => router.back()}>Back</button>
         <button onClick={() => router.push(`/user/edit-request/${userID}`)}>Request change</button>
 
       </div>
     </div>
-
   );
 
   function data() {
@@ -175,4 +198,3 @@ export default function UserPage() {
     }
   }
 }
-

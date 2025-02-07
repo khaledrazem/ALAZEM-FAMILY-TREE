@@ -1,0 +1,85 @@
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: var(--spacing-xl);
+}
+
+.tableContainer {
+    margin-top: var(--spacing-lg);
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+}
+
+.requestsTable {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--surface);
+}
+
+.requestsTable th {
+    text-align: left;
+    padding: var(--spacing-md);
+    background: var(--surface-dark);
+    color: var(--foreground);
+    font-weight: 600;
+}
+
+.requestsTable td {
+    padding: var(--spacing-md);
+    color: var(--foreground);
+}
+
+.requestRow {
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.requestRow:hover {
+    filter: brightness(0.95);
+}
+
+.requestRow.male {
+    background-color: rgba(173, 216, 230, 0.2); /* lightblue with opacity */
+}
+
+.requestRow.female {
+    background-color: rgba(255, 192, 203, 0.2); /* pink with opacity */
+}
+
+.requestRow.other {
+    background-color: rgba(211, 211, 211, 0.2); /* lightgray with opacity */
+}
+
+/* Empty state styling */
+.emptyState {
+    text-align: center;
+    padding: var(--spacing-2xl);
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    margin: var(--spacing-xl) auto;
+    max-width: 600px;
+}
+
+.emptyState h2 {
+    color: var(--foreground);
+    font-size: var(--font-size-xl);
+    margin-bottom: var(--spacing-md);
+}
+
+.emptyState p {
+    color: var(--secondary);
+    margin-bottom: var(--spacing-xl);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .container {
+        padding: var(--spacing-md);
+    }
+
+    .requestsTable th,
+    .requestsTable td {
+        padding: var(--spacing-sm);
+    }
+}
