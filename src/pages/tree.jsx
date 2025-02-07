@@ -1,14 +1,9 @@
-
 import React from "react";
-import f3 from 'family-chart';  
-import 'family-chart/styles/family-chart.css';
+import f3 from '../custome-modules/family-chart/dist/family-chart.js';
 import { useRouter } from 'next/router'
-import { redirect } from "next/dist/server/api-utils";
 
 export default class FamilyTree extends React.Component {
   cont = React.createRef();
-
-
 
   componentDidMount() {
     if (!this.cont.current) return;
@@ -22,9 +17,6 @@ export default class FamilyTree extends React.Component {
       router.push("/user/profile/" + id);
     };
 
-    
-    create(data())
-
     function create(data) {
       const f3Chart = f3.createChart('#FamilyChart', data)
         .setTransitionTime(1000)
@@ -37,20 +29,15 @@ export default class FamilyTree extends React.Component {
         .setCardDisplay([["first name","last name"],["birthday"]])
         .setCardDim({})
         .setMiniTree(true)
-        .setStyle('imageRect')
+        .setStyle('custom')
         .setOnHoverPathToMain()
     
-      
-
-      
-      
       f3Card.setOnCardClick((e, d) => {
         console.log("clicked")
         console.log(d)
         console.log(e)
         toUserPage(d.data.id);
       })
-    
     
       f3Chart.updateTree({initial: true})
     }
@@ -91,6 +78,7 @@ export default class FamilyTree extends React.Component {
       ]
     }
 
+    create(data())
   }
 
   render() {

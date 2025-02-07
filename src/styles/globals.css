@@ -4,6 +4,7 @@
   --foreground: #ffffff;
   --primary: #4f46e5;
   --primary-light: #6366f1;
+  --primary-rgb: 79, 70, 229;  /* Added RGB values for primary color */
   --secondary: #64748b;
   --accent: #22d3ee;
   --surface: #2d2d2d;
@@ -138,13 +139,6 @@ select:focus {
   box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
 }
 
-/* Cards and containers */
-.card {
-  background: var(--surface);
-  border-radius: var(--radius-lg);
-  padding: var(--spacing-lg);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-}
 
 .container {
   max-width: 1200px;

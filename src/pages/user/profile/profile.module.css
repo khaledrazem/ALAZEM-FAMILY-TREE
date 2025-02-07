@@ -7,6 +7,8 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   position: relative;
   min-height: calc(100vh - 4rem);
+  display: flex;
+  flex-flow: column;
 }
 
 .header {
@@ -85,12 +87,9 @@
 }
 
 .buttons {
-  position: fixed;
-  bottom: 2rem;
-  left: 2rem;
   display: flex;
-  gap: 1rem;
-  z-index: 1000;
+      gap: 1rem;
+      margin-top: auto;
 }
 
 .buttons button {
