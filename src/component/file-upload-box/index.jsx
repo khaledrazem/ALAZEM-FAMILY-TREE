@@ -19,7 +19,8 @@ const FileUploadBox = ({
     MAX_IMAGES = 5,
     name,
     register,
-    initialImages = []
+    initialImages = [],
+    required = false,
 }) => {
     const [selectedImages, setSelectedImages] = useState([]);
     const [fileErrorMsg, setFileErrorMsg] = useState(false);
@@ -77,43 +78,65 @@ const FileUploadBox = ({
         }
         return "Unknown";
       };
-    const fileSelectedHandler = (e) => {
+      const removeImage = (imageToRemove) => {
+       const updatedImages = selectedImages.filter(item => item !== imageToRemove);
+       setSelectedImages(updatedImages);
+       
+       // Create a new FileList using DataTransfer
+       const dataTransfer = new DataTransfer();
+       updatedImages.forEach(image => {
+           if (image instanceof File) {
+               dataTransfer.items.add(image);
+           }
+       });
+       
+       // Update form data
+       const input = document.querySelector(`input[name="${name}"]`);
+       if (input) {
+           input.files = dataTransfer.files;
+           // Trigger change event to update react-hook-form
+           const event = new Event('change', { bubbles: true });
+           input.dispatchEvent(event);
+       }
 
-        if (validateSelectedFile(e[0])) {
-            setSelectedImages([
-                ...selectedImages,
-                ...e,
-            ]);
-        }
-    }
-
-      const removeImage = (e) => {
-        setSelectedImages(
-            selectedImages.filter(item => item !== e)
-        );
-
-        if (setImages == null) {
-            return;
-        }
-        setImages(selectedImages);
-    };
+       if (setImages) {
+           setImages(updatedImages);
+       }
+   };
 
 return (
     <div className={styles['input-box']}>
         <div className={styles['img-upload-box']}>
             <div className={styles['brows-file-wrapper']}>
                 <input
-                    name="file"
-                    id="file"
+                    name={name}
+                    id={name}
                     type="file"
-                    accept="image/vnd.sealedmedia.softseal.jpg, image/jpeg, image/png"
+                    accept="image/*"
                     data-multiple-caption="{count} files selected"
                     {...register(name, {
                         onChange: (event) => {
-                            event.preventDefault();
-                            fileSelectedHandler(event.target.files);
-                            event.target.value = null;
+                            if (validateSelectedFile(event.target.files[0])) {
+                                const newImages = [...selectedImages, ...Array.from(event.target.files)];
+                                setSelectedImages(newImages);
+                                
+                                // Create a new FileList using DataTransfer
+                                const dataTransfer = new DataTransfer();
+                                newImages.forEach(image => {
+                                    if (image instanceof File) {
+                                        dataTransfer.items.add(image);
+                                    }
+                                });
+                                
+                                // Update the form field with the new FileList
+                                event.target.files = dataTransfer.files;
+                                
+                                if (setImages) {
+                                    setImages(newImages);
+                                }
+                            }
                         },
+                        required: required
                     })}
                     style={{ display: 'none' }}
                 />
@@ -130,13 +153,13 @@ return (
                             />
                         ))}
                         {selectedImages.length < MAX_IMAGES && (
-                            <label htmlFor="file">
+                            <label htmlFor={name}>
                                 <i className={styles['feather-upload']} />
                             </label>
                         )}
                     </div>
                 ) : (
-                    <label htmlFor="file" title="No File Chosen">
+                    <label htmlFor={name} title="No File Chosen">
                         <p>
                             <i className={styles['feather-upload']} />
                             <span>Click to upload image</span>

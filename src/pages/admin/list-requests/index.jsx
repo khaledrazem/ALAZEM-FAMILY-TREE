@@ -1,22 +1,21 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import styles from './list-requests.module.css';
+import SupaBaseAdminAPI from '@/api/supabase-admin';
 
 export default function AdminRequests() {
   const [requests, setRequests] = useState([]);
   const router = useRouter();
 
+  const supabaseApi = new SupaBaseAdminAPI();
+
   useEffect(() => {
     fetchUserRequests();
   }, []);
 
-  function fetchUserRequests() {
+  async function fetchUserRequests() {
     // TODO: Fetch requests from the database
-    setRequests([
-      { id: '110', firstName: 'John', lastName: 'Doe', gender: 'M', requestedAt: '2024-02-04' },
-      { id: '1120', firstName: 'Jane', lastName: 'Smith', gender: 'F', requestedAt: '2024-01-29' },
-      { id: '1121', firstName: 'Alex', lastName: 'Johnson', gender: 'O', requestedAt: '2024-01-30' },
-    ]);
+    setRequests(await supabaseApi.getUserRequests());
   }
 
   function handleRequestClick(userId) {
@@ -41,6 +40,7 @@ export default function AdminRequests() {
               <tr>
                 <th>Name</th>
                 <th>Gender</th>
+                <th>Type</th>
                 <th>Request Date</th>
               </tr>
             </thead>
@@ -51,10 +51,11 @@ export default function AdminRequests() {
                   className={`${styles.requestRow} ${getRowClassName(request.gender)}`}
                   onClick={() => handleRequestClick(request.id)}
                 >
-                  <td>{request.firstName} {request.lastName}</td>
+                  <td>{request.first_name} {request.last_lame}</td>
                   <td>{request.gender}</td>
+                  <td>{request.is_editing? "Updating" : "New"}</td>
                   <td>
-                    {new Date(request.requestedAt).toLocaleDateString('en-GB', {
+                    {new Date(request.date_created).toLocaleDateString('en-GB', {
                       day: 'numeric',
                       month: 'short',
                       year: 'numeric'

@@ -1,59 +1,239 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import styles from './review-request.module.css';
+import SupaBaseAdminAPI from '@/api/supabase-admin';
 
 export default function ReviewRequest() {
   const router = useRouter();
   const { userId } = router.query;
-  const [request, setRequest] = useState(null);
+  const [request, setRequest] = useState({});
+  const supabaseApi = new SupaBaseAdminAPI();
+
+
+  const [users, setUsers] = useState([])
+
+  async function getSimpleUsers() {
+    //TODO: Get users from the database with only first name and last name and DOB
+    let usersData = await supabaseApi.getAllUsersBrief();
+
+    console.log(usersData);
+    usersData = usersData.map((user) => {
+      return {
+        id: user.id,
+        data: {
+          "firstName": user.first_name,
+          "lastName": user.last_name,
+      
+          "birthday": user.dob,
+        }
+      
+  }
+});
+    setUsers(usersData);
+    console.log(users);
+    console.log("USERS")
+    console.log(usersData);
+
+  }
 
   useEffect(() => {
-    if (userId) {
-      fetchRequestDetails();
-    }
-  }, [userId]);
+    const init = async () => {
+      if (!users || users.length==0) {
+        await getSimpleUsers();
 
-  const fetchRequestDetails = () => {
-    // TODO: Fetch request details from the database
-    setRequest({
-      data: {
-        avatar: "https://example.com/avatar.jpg",
-        firstName: "John",
-        lastName: "Doe",
-        birthday: "1990-05-15",
-        gender: "M",
-        maritalStatus: "Married",
-        emailAddress: "john.doe@example.com",
-        publicEmail: true,
-        gallaryPhotos: [
-          "https://dummyimage.com/16:9x1080/",
-          "https://dummyimage.com/16:9x720/"
-        ],
-        identityDocument:   "https://dummyimage.com/16:9x1080/",
-        spouse: {
-          id: "110",
-          data: {
-            firstName: "Jane",
-            lastName: "Doe",
-            birthday: 1992
-          }
-        }
-      },
-      status: "pending",
-      requestedAt: "2024-02-04"
-    });
+      }
+      if (userId) {
+        await fetchRequestDetails();
+      }
+    };
+    init();
+  }, [userId, users]);
+
+  const fetchRequestDetails = async () => {
+      // TODO: Fetch request details from the database
+      const userData = await supabaseApi.getUserRequestById(userId);
+      if (!userData) {
+        console.error('No user data found');
+        return;
+      }
+      setRequest({
+        id: userData.id || null,
+        data: {
+         
+          existing_id: userData.existing_id || null,
+          avatar: userData.avatar || null,
+          firstName: userData.first_name || null,
+          lastName: userData.last_name || null,
+          birthday: userData.dob || null,
+          gender: userData.gender || null,
+          maritalStatus: userData.marital_status || null,
+          emailAddress: userData.email || null,
+          publicEmail: userData.public_email || false,
+          gallaryPhotos: userData.gallery_photos || null,
+          identityDocuments: userData.id_documents || null,
+          spouse: userData.spouse ? users.find((user) => user.id === userData.spouse) || null : null,
+          father: userData.father ? users.find((user) => user.id === userData.father) || null : null,
+          mother: userData.mother ? users.find((user) => user.id === userData.mother) || null : null,
+          siblings: userData.siblings ? users.filter((user) => userData.siblings.includes(user.id)) || null : null,
+          children: userData.children ? users.filter((user) => userData.children.includes(user.id)) || null : null
+        },
+        requestedAt: userData.date_created || new Date().toISOString(),
+      });
+
   };
 
   const handleApprove = async () => {
-    // TODO: Update request status to approved in the database
+    try {
+      if (!request?.data) {
+        console.error('No request data available');
+        return;
+      }
+
+      let userResponse;
+      const isUpdate = !!request.data.existing_id;
+      const userId = isUpdate ? request.data.existing_id : null;
+
+      // Format the base request with all fields
+      const formattedRequest = {
+        first_name: request.data.firstName || null,
+        last_name: request.data.lastName || null,
+        gender: request.data.gender || null,
+        dob: request.data.birthday || null,
+        marital_status: request.data.maritalStatus || null,
+        avatar: request.data.avatar || null,
+        gallery_photos: request.data.gallaryPhotos || null,
+        email: request.data.publicEmail ? request.data.emailAddress || null : null,
+        father: request.data.father?.id || null,
+        mother: request.data.mother?.id || null,
+        siblings: request.data.siblings?.length > 0 ? request.data.siblings.map(sibling => sibling.id) : null,
+        children: request.data.children?.length > 0 ? request.data.children.map(child => child.id) : null
+      };
+
+      if (isUpdate) {
+        // Get existing user data to compare changes
+        const existingUser = await supabaseApi.getUserDetails(userId);
+        if (!existingUser) {
+          throw new Error('Existing user not found');
+        }
+
+        // Create update request with only changed fields
+        const updateRequest = { id: userId };
+        const fields = Object.keys(formattedRequest);
+        
+        for (const field of fields) {
+          if (JSON.stringify(formattedRequest[field]) !== JSON.stringify(existingUser[field])) {
+            updateRequest[field] = formattedRequest[field];
+          }
+        }
+
+        userResponse = await supabaseApi.updateUser(updateRequest);
+        console.log('Updated user:', userResponse);
+      } else {
+        userResponse = await supabaseApi.createUser(formattedRequest);
+        console.log('Created user:', userResponse);
+      }
+
+      // Update family members' relationships
+      const finalUserId = isUpdate ? userId : userResponse.id;
+      await updateFamilyRelationships(formattedRequest, finalUserId);
+      await supabaseApi.deleteRequest(request.id);
+    } catch (error) {
+      console.error('Error approving request:', error);
+      return;
+    }
+    
     console.log('Approving request:', userId);
     router.push('/admin/list-requests');
   };
 
+  const updateFamilyRelationships = async (formattedRequest, newUserId) => {
+    try {
+      // Update spouse relationship (reciprocal)
+      if (formattedRequest.spouse) {
+        const spouseDetails = await supabaseApi.getUserDetails(formattedRequest.spouse);
+        if (spouseDetails && spouseDetails.id) {
+          // Update spouse's spouse field
+          await supabaseApi.updateUser({
+            id: spouseDetails.id,
+            spouse: newUserId
+          });
+        }
+      }
+
+      // Update father's children array
+      if (formattedRequest.father) {
+        const fatherDetails = await supabaseApi.getUserDetails(formattedRequest.father);
+        if (fatherDetails && fatherDetails.id) {
+          const updatedChildren = Array.from(new Set([...(fatherDetails.children || []), newUserId]));
+          await supabaseApi.updateUser({
+            id: fatherDetails.id,
+            children: updatedChildren
+          });
+        }
+      }
+
+      // Update mother's children array
+      if (formattedRequest.mother) {
+        const motherDetails = await supabaseApi.getUserDetails(formattedRequest.mother);
+        if (motherDetails && motherDetails.id) {
+          const updatedChildren = Array.from(new Set([...(motherDetails.children || []), newUserId]));
+          await supabaseApi.updateUser({
+            id: motherDetails.id,
+            children: updatedChildren
+          });
+        }
+      }
+
+      // Update siblings' siblings array and ensure reciprocal relationships
+      if (formattedRequest.siblings && formattedRequest.siblings.length > 0) {
+        // First, get the current user's siblings array
+        const currentUserDetails = await supabaseApi.getUserDetails(newUserId);
+        const currentUserSiblings = new Set(currentUserDetails?.siblings || []);
+        
+        for (const siblingId of formattedRequest.siblings) {
+          // Skip if trying to add self as sibling
+          if (siblingId === newUserId) continue;
+          
+          const siblingDetails = await supabaseApi.getUserDetails(siblingId);
+          if (siblingDetails && siblingDetails.id) {
+            // Update sibling's siblings array
+            const updatedSiblings = Array.from(new Set([...(siblingDetails.siblings || []), newUserId]));
+            await supabaseApi.updateUser({
+              id: siblingDetails.id,
+              siblings: updatedSiblings
+            });
+            
+            // Add this sibling to current user's siblings set
+            currentUserSiblings.add(siblingId);
+          }
+        }
+
+        // Update current user's siblings array
+        await supabaseApi.updateUser({
+          id: newUserId,
+          siblings: Array.from(currentUserSiblings)
+        });
+      }
+    } catch (error) {
+      console.error('Error updating family relationships:', error);
+      throw error; // Re-throw to be handled by the caller
+    }
+  };
+
   const handleDecline = async () => {
-    // TODO: Update request status to rejected in the database
-    console.log('Declining request:', userId);
-    router.push('/admin/list-requests');
+    try {
+      if (!userId) {
+        console.error('No user ID available');
+        return;
+      }
+      
+      // Update request status to rejected in the database
+      await supabaseApi.deleteRequest(userId);
+      console.log('Declining request:', userId);
+      router.push('/admin/list-requests');
+    } catch (error) {
+      console.error('Error declining request:', error);
+    }
   };
 
   const formatDate = (date) => {
@@ -72,23 +252,21 @@ export default function ReviewRequest() {
     <div className={styles.container}>
       <div className={styles.header}>
         <h1>Review Request</h1>
-        <div className={styles.status}>
-          Status: <span className={styles[request.status]}>{request.status}</span>
-        </div>
+        
         <div className={styles.date}>
-          Requested on: {formatDate(request.requestedAt)}
+          Requested on: {request?.requestedAt ? formatDate(request.requestedAt) : 'Not available'}
         </div>
       </div>
 
       <div className={styles.content}>
         <div className={styles.profileSection}>
-          <div className={styles.avatarSection}>
+          {request?.data?.avatar? <div className={styles.avatarSection}>
             <img 
               src={request.data.avatar} 
               alt="Profile" 
               className={styles.avatar}
             />
-          </div>
+          </div>: null}
 
           <div className={styles.infoSection}>
             <div className={styles.infoGroup}>
@@ -96,27 +274,27 @@ export default function ReviewRequest() {
               <div className={styles.infoGrid}>
                 <div className={styles.infoItem}>
                   <label>First Name</label>
-                  <div>{request.data.firstName}</div>
+                  <div>{request?.data?.firstName || 'Not provided'}</div>
                 </div>
                 <div className={styles.infoItem}>
                   <label>Last Name</label>
-                  <div>{request.data.lastName}</div>
+                  <div>{request?.data?.lastName || 'Not provided'}</div>
                 </div>
                 <div className={styles.infoItem}>
                   <label>Date of Birth</label>
-                  <div>{formatDate(request.data.birthday)}</div>
+                  <div>{request?.data?.birthday ? formatDate(request.data.birthday) : 'Not provided'}</div>
                 </div>
                 <div className={styles.infoItem}>
                   <label>Gender</label>
-                  <div>{request.data.gender === 'M' ? 'Male' : 'Female'}</div>
+                  <div>{request?.data?.gender ? (request.data.gender === 'M' ? 'Male' : 'Female') : 'Not provided'}</div>
                 </div>
                 <div className={styles.infoItem}>
                   <label>Marital Status</label>
-                  <div>{request.data.maritalStatus}</div>
+                  <div>{request?.data?.maritalStatus || 'Not provided'}</div>
                 </div>
                 <div className={styles.infoItem}>
                   <label>Email</label>
-                  <div>{request.data.emailAddress}</div>
+                  <div>{request?.data?.emailAddress || 'Not provided'}</div>
                 </div>
               </div>
             </div>
@@ -124,22 +302,38 @@ export default function ReviewRequest() {
             <div className={styles.infoGroup}>
               <h2>Family Information</h2>
               <div className={styles.infoGrid}>
-                {request.data.spouse && (
+                {request?.data?.spouse?.data && (
                   <div className={styles.infoItem}>
                     <label>Spouse</label>
-                    <div>{`${request.data.spouse.data.firstName} ${request.data.spouse.data.lastName}`}</div>
+                    <div>{`${request.data.spouse.data.firstName || ''} ${request.data.spouse.data.lastName || ''}  ${request.data.spouse.data.birthday || ''}`}</div>
                   </div>
                 )}
-                {request.data.father && (
+                {request?.data?.father?.data && (
                   <div className={styles.infoItem}>
                     <label>Father</label>
-                    <div>{`${request.data.father.data.firstName} ${request.data.father.data.lastName}`}</div>
+                    <div>{`${request.data.father.data.firstName || ''} ${request.data.father.data.lastName || ''}  ${request.data.father.data.birthday || ''}`}</div>
                   </div>
                 )}
-                {request.data.mother && (
+                {request?.data?.mother?.data && (
                   <div className={styles.infoItem}>
                     <label>Mother</label>
-                    <div>{`${request.data.mother.data.firstName} ${request.data.mother.data.lastName}`}</div>
+                    <div>{`${request.data.mother.data.firstName || ''} ${request.data.mother.data.lastName || ''}  ${request.data.mother.data.birthday || ''}`}</div>
+                  </div>
+                )}
+                  {request?.data?.children && (
+                  <div className={styles.infoItem}>
+                    <label>Children</label>
+                   {request.data.children.map((child) => {
+                    return <div>{`${child.data.firstName || ''} ${child.data.lastName || ''}  ${child.data.birthday || ''}`}</div>
+                   }) }
+                  </div>
+                )}
+                  {request?.data?.siblings && (
+                  <div className={styles.infoItem}>
+                    <label>Siblings</label>
+                   {request.data.siblings.map((sibling) => {
+                    return <div>{`${sibling.data.firstName || ''} ${sibling.data.lastName || ''}  ${sibling.data.birthday || ''}`}</div>
+                   }) }
                   </div>
                 )}
               </div>
@@ -147,26 +341,31 @@ export default function ReviewRequest() {
           </div>
         </div>
 
-        <div className={styles.documentsSection}>
-          <h2>Identity Document</h2>
-          <div className={styles.documentImage}>
-            <img
-              src={request.data.identityDocument}
-              alt="Identity Document"
-            />
+        {request?.data?.identityDocuments?.length>0 && (
+          <div className={styles.documentsSection}>
+            <h2>Identity Documents</h2>
+            {request.data.identityDocuments.map ((document) =>
+            <div className={styles.documentImage}>
+              <img
+                src={document}
+                alt="Identity Document"
+              />
+            </div>)}
           </div>
-        </div>
+        )}
 
-        <div className={styles.gallerySection}>
-          <h2>Gallery Photos</h2>
-          <div className={styles.gallery}>
-            {request.data.gallaryPhotos.map((photo, index) => (
-              <div key={index} className={styles.galleryItem}>
-                <img src={photo} alt={`Gallery photo ${index + 1}`} />
-              </div>
-            ))}
+        {request?.data?.gallaryPhotos?.length > 0 && (
+          <div className={styles.gallerySection}>
+            <h2>Gallery Photos</h2>
+            <div className={styles.gallery}>
+              {request.data.gallaryPhotos.map((photo, index) => (
+                <div key={index} className={styles.galleryItem}>
+                  <img src={photo} alt={`Gallery photo ${index + 1}`} />
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       <div className={styles.actions}>

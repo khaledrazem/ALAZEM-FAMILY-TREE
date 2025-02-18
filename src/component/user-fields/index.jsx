@@ -8,167 +8,96 @@ import { useEffect, useState } from 'react';
 import Autocomplete from '@mui/material/Autocomplete';
 import TextField from '@mui/material/TextField';
 import { Box } from '@mui/material';
+import SupaBaseUserAPI from '@/api/supabase-user';
 
 export default function UserFields({isEdit=false, isAdminPreview=false, userId=null, onSubmit, submitLabel="Submit"}) {
   const router = useRouter()
   const { register, handleSubmit, reset, getValues, control, watch } = useForm();
+  const supabaseApi = new SupaBaseUserAPI();
 
   const [users, setUsers] = useState([])
   const [initialGallaries, setInitialGallaries] = useState([])
+  const [userDetails, setUserDetails] = useState({});
 
 
-  var userDetails = {};
-
-  useEffect(() => { 
-    console.log("UserFields");
-    console.log(userId);
-    console.log(isEdit);
-  }, [userId]);
-
-  function getSimpleUsers() {
+  async function getSimpleUsers() {
     //TODO: Get users from the database with only first name and last name and DOB
-    setUsers([{
-      "id": "110",
-      "data": {
-        "firstName": "Name",
-        "lastName": "Surname",
-        "birthday": 1970,
-      }
-    },
-    {
-      "id": "1120",
-      "data": {
-        "firstName": "sName",
-        "lastName": "tSurname",
-        "birthday": 1940,
-      }
-    }]);
+    let usersData = await supabaseApi.getAllUsersBrief();
+
+    console.log(usersData);
+    usersData = usersData.map((user) => {
+      return {
+        id: user.id,
+        data: {
+          "firstName": user.first_name,
+          "lastName": user.last_name,
+      
+          "birthday": user.dob,
+        }
+      
+  }
+});
+    setUsers(usersData);
   }
 
-  function getDisplayUserDetails() {
-    //TODO: Get user details from the database using userId
-    userDetails = {
-      "data": {
-        "avatar": "https://example.com/avatar.jpg",
-        "firstName": "John",
-        "lastName": "Doe",
-        "birthday": "1990-05-15",
-        "gender": "M",
-        "maritalStatus": "Married",
-        "emailAddress": "john.doe@example.com",
-        "publicEmail": "johndoe.public@example.com",
-        "gallaryPhotos": [
-          "https://dummyimage.com/16:9x1080/",
-          "https://dummyimage.com/16:9x720/"
-        ],
-        "siblings":[
-          {
-              "id": "110",
-              "data": {
-                  "firstName": "Name",
-                  "lastName": "Surname",
-                  "birthday": 1970
-              }
-          }
-      ],
-      "father": {
-          "id": "110",
-          "data": {
-              "firstName": "Name",
-              "lastName": "Surname",
-              "birthday": 1970
-          }
-      },
-      "mother": {
-          "id": "110",
-          "data": {
-              "firstName": "Name",
-              "lastName": "Surname",
-              "birthday": 1970
-          }
-        },
-      
-      "spouse": {
-        "id": "110",
-        "data": {
-            "firstName": "Name",
-            "lastName": "Surname",
-            "birthday": 1970
-        }
-      }
-    },
-      "rels": {
-        "spouses": [
-          {
-            "ID": "055a439f-d985-4128-aca8-24a2f0b9af7e",
-            "firstName": "Jane",
-            "lastName": "Doe",
-            "birthday": "1992-08-22"
-          }
-        ],
-        "siblings": [
-          {
-            "id": "1120",
-            "data": {
-              "firstName": "sName",
-              "lastName": "tSurname",
-              "birthday": 1940,
-            }
-          }
-        ],
-        "parents": [
-          {
-            "ID": "055a439f-d985-4128-aca8-24a2f0b9af7e",
-            "firstName": "Michael",
-            "lastName": "Doe",
-            "birthday": "1965-02-25"
-          },
-          {
-            "ID": "055a439f-d985-4128-aca8-24a2f0b9af7e",
-            "firstName": "Sarah",
-            "lastName": "Doe",
-            "birthday": "1967-07-30"
-          }
-        ],
-        "children": [
-          {
-            "id": "1120",
-            "data": {
-              "firstName": "sName",
-              "lastName": "tSurname",
-              "birthday": 1940,
-            }
-          }
-        ]
-      }
-    };
+  async function getDisplayUserDetails() {
+    if (isEdit && !userId){
+      console.log("userid not provided");
+      router.push("/")
+    }
+
+    setUserDetails(await supabaseApi.getUserDetails(userId));
+
+    
   }
+
 
   useEffect(() => {
-    getSimpleUsers();
-  
-    console.log(userId);
-    console.log(isEdit);
-    if (isEdit && userId) {
-      getDisplayUserDetails();
-      reset({
-        avatar: userDetails.data.avatar,
-        firstName: userDetails.data.firstName,
-        lastName: userDetails.data.lastName,
-        dob: userDetails.data.birthday,
-        gender: userDetails.data.gender,
-        maritalStatus: userDetails.data.maritalStatus,
-        emailAddress: userDetails.data.emailAddress,
-        publicEmail: userDetails.data.publicEmail,
-        gallaryPhotos: userDetails.data.gallaryPhotos,
-        spouse: userDetails.data.spouse,
-        siblings: userDetails.rels.siblings,
-        father: userDetails.data.father,
-        children: userDetails.rels.children,
-      })
-      setInitialGallaries(userDetails.data.gallaryPhotos);
-    }
-  }, [userId]);
+    const fetchData = async () => {
+        await getSimpleUsers();
+
+        console.log(userId);
+        console.log(isEdit);
+        if (isEdit && userId) {
+            await getDisplayUserDetails();
+           
+        }
+    };
+
+    fetchData();
+    console.log(userDetails)
+}, [userId]);
+
+useEffect(() => {
+  const fetchData = async () => {
+    
+          console.log(userDetails)
+          reset({
+              avatar: userDetails.avatar,
+              firstName: userDetails.first_name,
+              lastName: userDetails.last_name,
+              dob: userDetails.dob,
+              gender: userDetails.gender,
+              maritalStatus: userDetails.marital_status,
+              emailAddress: userDetails.email,
+              publicEmail: userDetails.publicEmail,
+              gallaryPhotos: userDetails.gallary_photos,
+              spouse: users.find((item) => item.id === userDetails?.spouse),
+              siblings: userDetails?.siblings ? users.filter((item) => userDetails.siblings.includes(item.id)) : [],
+              father: users.find((item) => item.id === userDetails?.father),
+              mother: users.find((item) => item.id === userDetails?.mother),
+              children: userDetails?.children ? users.filter((item) => userDetails.children.includes(item.id)) : [],
+          });
+          setInitialGallaries(userDetails.gallaryPhotos);
+      }
+
+
+  fetchData();
+  console.log(users.filter((item) => item.id == userDetails.siblings) )
+  console.log(users)
+  console.log(userDetails)
+}, [userDetails]);
+
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className={styles.userform}>
@@ -177,7 +106,7 @@ export default function UserFields({isEdit=false, isAdminPreview=false, userId=n
       <div className={styles.userinfo}>
         <div className={styles.avatar}>
           <UploadImage register={register} 
-           name={"profileicon"}
+           name={"avatar"}
            height={296}
            width={285}
            text={"Profile Photo"}/>
@@ -217,15 +146,14 @@ export default function UserFields({isEdit=false, isAdminPreview=false, userId=n
             <label>Email Address: </label>
             <input
               type='text'
-              {...register("emailAddress", {
-                required: "Please enter your email address.",
-              })} 
+              {...register("emailAddress")} 
             />
           </div>
 
           <div className={styles.datarow}>
-            <label>Show email in public profile? </label>
+            <label for="publicEmail">Show email in public profile? </label>
             <input
+            id='publicEmail'
               type='checkBox'
               {...register("publicEmail")} 
             />
@@ -451,14 +379,14 @@ export default function UserFields({isEdit=false, isAdminPreview=false, userId=n
             />
           </div>
 
-          {!isEdit ? <div className={styles.datarow}>
-            <label>Identity document (To verify your Identity we require an idenitity document that shows your full name and parents name, this image will be deleted as soon as the request is accepted/rejected ): </label>
+           <div className={styles.datarow}>
+            <label onClick={() => console.log(getValues())}>Identity document (To verify your Identity we require an idenitity document that shows your full name and parents name, this image will be deleted as soon as the request is accepted/rejected ): </label>
             <FileUploadBox
               register={register}
               name={"identityDocument"}
+              required={"Please upload an identity document"}
             />
           </div> 
-          : null}
           <div className={styles.datarow}>
             <label>Gallary Photos </label>
             <FileUploadBox

@@ -36,8 +36,8 @@
         datum.rels.children.sort((a, b) => {
           const a_d = data.find(d => d.id === a),
             b_d = data.find(d => d.id === b),
-            a_p2 = otherParent(a_d, datum, data) || {},
-            b_p2 = otherParent(b_d, datum, data) || {},
+            a_p2 = a_d? otherParent(a_d, datum, data) || {} :{},
+            b_p2 = b_d? otherParent(b_d, datum, data) || {}:{},
             a_i = spouses.indexOf(a_p2.id),
             b_i = spouses.indexOf(b_p2.id);
     
@@ -119,6 +119,7 @@
         return line
     
         function checkIfAnyRelIsMain(d0, history) {
+          if (!d0) return [];
           if (line) return
           history = [...history, d0];
           runAllRels(check);
@@ -144,7 +145,7 @@
       function isM(d0) {return typeof d0 === 'object' ? d0.id === data_stash[0].id : d0 === data_stash[0].id}  // todo: make main more exact
     }
     
-    function createForm({datum, store, fields, postSubmit, addRelative, deletePerson, onCancel, editFirst}) {
+    function createForm({datum, store, fields, postSubmit, addRelative, deletePerson, onCancel, editFirst, is_new_rel}) {
       const form_creator = {
         fields: [],
         onSubmit: submitFormChanges,
@@ -192,7 +193,7 @@
         const form_data = new FormData(e.target);
         form_data.forEach((v, k) => datum.data[k] = v);
         if (datum.to_add) delete datum.to_add;
-        postSubmit();
+        postSubmit({is_new_rel:is_new_rel});
       }
     
       function deletePersonWithPostSubmit() {
@@ -240,7 +241,7 @@
       data_no_to_add.forEach(d => delete d.hide_rels);
       return JSON.stringify(data_no_to_add, null, 2)
     }
-    
+
     function removeToAddFromData(data) {
       data.forEach(d => d.to_add ? removeToAdd(d, data) : d);
       return data
@@ -444,9 +445,10 @@
     }
     
     function isAllRelativeDisplayed(d, data) {
+      if (!d?.data) return [];
       const r = d.data.rels,
         all_rels = [r.father, r.mother, ...(r.spouses || []), ...(r.children || [])].filter(v => v);
-      return all_rels.every(rel_id => data.some(d => d.data.id === rel_id))
+      return all_rels.every(rel_id => data.some(d => d?.data?.id === rel_id))
     }
     
     function CalculateTree({data, main_id=null, node_separation=250, level_separation=150, single_parent_empty_card=true, is_horizontal=false}) {
@@ -488,11 +490,12 @@
           return offset
         }
         function sameParent(a, b) {return a.parent == b.parent}
-        function sameBothParents(a, b) {return (a.data.rels.father === b.data.rels.father) && (a.data.rels.mother === b.data.rels.mother)}
-        function hasSpouses(d) {return d.data.rels.spouses && d.data.rels.spouses.length > 0}
+        function sameBothParents(a, b) {return (a.data?.rels?.father === b.data?.rels?.father) && (a.data?.rels?.mother === b.data?.rels?.mother)}
+        function hasSpouses(d) {return d.data?.rels?.spouses && d.data?.rels?.spouses.length > 0}
         function someSpouses(a, b) {return hasSpouses(a) || hasSpouses(b)}
     
         function hierarchyGetterChildren(d) {
+          if (!d) return [];
           return [...(d.rels.children || [])].map(id => data_stash.find(d => d.id === id))
         }
     
@@ -530,7 +533,7 @@
       function setupSpouses({tree, node_separation}) {
         for (let i = tree.length; i--;) {
           const d = tree[i];
-          if (!d.is_ancestry && d.data.rels.spouses && d.data.rels.spouses.length > 0){
+          if (!d.is_ancestry && d.data?.rels?.spouses && d.data?.rels?.spouses.length > 0){
             const side = d.data.data.gender === "M" ? -1 : 1;  // female on right
             d.x += d.data.rels.spouses.length/2*node_separation*side;
             d.data.rels.spouses.forEach((sp_id, i) => {
@@ -563,6 +566,7 @@
           if (d.is_ancestry) return
           if (d.depth === 0) return
           if (d.added) return
+          if (!d?.data) return null;
           const m = findDatum(d.data.rels.mother);
           const f = findDatum(d.data.rels.father);
           if (m && f) {
@@ -584,7 +588,7 @@
     
         function findDatum(id) {
           if (!id) return null
-          return tree.find(d => d.data.id === id)
+          return tree.find(d => d?.data?.id === id)
         }
       }
     
@@ -756,7 +760,7 @@
     function createLinks({d, tree, is_horizontal=false}) {
       const links = [];
     
-      if (d.data.rels.spouses && d.data.rels.spouses.length > 0) handleSpouse({d});
+      if (d?.data?.rels.spouses && d?.data?.rels.spouses.length > 0) handleSpouse({d});
       handleAncestrySide({d});
       handleProgenySide({d});
     
@@ -810,7 +814,7 @@
     
       function handleSpouse({d}) {
         d.data.rels.spouses.forEach(sp_id => {
-          const spouse = getRel(d, tree, d0 => d0.data.id === sp_id);
+          const spouse = getRel(d, tree, d0 => d0?.data?.id === sp_id);
           if (!spouse || d.spouse) return
           links.push({
             d: [[d.x, d.y], [spouse.x, spouse.y]],
@@ -868,11 +872,11 @@
       }
     
       function linkId(...args) {
-        return args.map(d => d.data.id).sort().join(", ")  // make unique id
+        return args.map(d => d?.data?.id).sort().join(", ")  // make unique id
       }
     
       function otherParent(child, p1, data) {
-        const condition = d0 => (d0.data.id !== p1.data.id) && ((d0.data.id === child.data.rels.mother) || (d0.data.id === child.data.rels.father));
+        const condition = d0 => (d0?.data?.id !== p1.data?.id) && ((d0?.data?.id === child?.data?.rels.mother) || (d0?.data?.id === child?.data?.rels.father));
         return getRel(p1, data, condition)
       }
     
@@ -1085,7 +1089,7 @@
     }
     
     function updateCardsHtml(div, tree, Card, props={}) {
-      const card = d3.select(div).select(".cards_view").selectAll("div.card_cont").data(tree.data, d => d.data.id),
+      const card = d3.select(div).select(".cards_view").selectAll("div.card_cont").data(tree.data, d => d.data?.id),
         card_exit = card.exit(),
         card_enter = card.enter().append("div").attr("class", "card_cont").style('pointer-events', 'none'),
         card_update = card_enter.merge(card);
@@ -2187,6 +2191,7 @@
       : cardInnerDefault;
     
       return function (d) {
+        if (!d?.data) return null;
         this.innerHTML = (`
         <div class="card ${getClassList(d).join(' ')}" data-id="${d.data.id}" style="transform: translate(-50%, -50%); pointer-events: auto;">
           ${props.mini_tree ? getMiniTree(d) : ''}
@@ -2324,15 +2329,16 @@
     
       function getClassList(d) {
         const class_list = [];
-        if (d.data.data.gender === 'M') class_list.push('card-male');
-        else if (d.data.data.gender === 'F') class_list.push('card-female');
+        if (!d?.data) return class_list;
+        if (d.data?.data?.gender === 'M') class_list.push('card-male');
+        else if (d.data?.data?.gender === 'F') class_list.push('card-female');
         else class_list.push('card-genderless');
     
-        if (d.data.main) class_list.push('card-main');
+        if (d.data?.main) class_list.push('card-main');
     
-        if (d.data._new_rel_data) class_list.push('card-new-rel');
+        if (d.data?._new_rel_data) class_list.push('card-new-rel');
     
-        if (d.data.to_add) class_list.push('card-to-add');
+        if (d.data?.to_add) class_list.push('card-to-add');
     
         return class_list
       }
@@ -2494,6 +2500,7 @@
         let new_spouse;
         datum.rels.children.forEach(child_id => {
           const child = datum_rels.find(d => d.id === child_id);
+          if (!child) return ;
           if (!child.rels.mother) {
             if (!new_spouse) new_spouse = createNewPerson({data: {gender: "F"}, rels: {spouses: [datum.id], children: []}});
             new_spouse._new_rel_data = {rel_type: "spouse", label: addRelLabels.spouse};
@@ -2541,18 +2548,22 @@
     }
     
     function findRel(store_data, id) {
-      return JSON.parse(JSON.stringify(store_data.find(d => d.id === id)))
+      let found = store_data.find(d => d.id === id);
+      if (!found) {
+        return null;
+      }
+      return JSON.parse(JSON.stringify(found))
     }
     
     function getDatumRels(datum, data) {
-      const datum_rels = [datum];
+            const datum_rels = [datum];
       Object.keys(datum.rels).forEach(rel_type => {
         const rel = datum.rels[rel_type];
         if (Array.isArray(rel)) {
           rel.forEach(rel_id => {
             findAndPushRel(rel_type, rel_id);
           });
-        } else {
+        } else if (rel) {
           findAndPushRel(rel_type, rel);
         }
       });
@@ -2560,6 +2571,7 @@
     
       function findAndPushRel(rel_type, rel_id) {
         const rel_datum = findRel(data, rel_id);
+        if (!rel_datum) return;
         if (rel_type === 'father' || rel_type === 'mother') {
           delete rel_datum.rels.father;
           delete rel_datum.rels.mother;
@@ -2627,8 +2639,9 @@
     
     EditTree.prototype.cardEditForm = function(datum) {
       const props = {};
-      const is_new_rel = datum?._new_rel_data;
-      if (is_new_rel) {
+      props.is_new_rel = datum?._new_rel_data!=null;
+    
+      if ( props.is_new_rel) {
         props.onCancel = () => this.addRelativeInstance.onCancel();
       } else {
         props.addRelative = this.addRelativeInstance;
@@ -2670,7 +2683,8 @@
         
         this.store.updateTree({});
     
-        this.updateHistory();
+        const op_type = props?.is_new_rel? "NEW" :props?.delete? "DELETE" : "EDIT" ;
+        this.updateHistory({op_type: op_type, ...datum});
       }
     };
     
@@ -2827,13 +2841,14 @@
       return f3.handlers.cleanupDataJson(JSON.stringify(data))
     };
     
-    EditTree.prototype.updateHistory = function() {
+    EditTree.prototype.updateHistory = function(datum) {
       if (this.history) {
         this.history.changed();
         this.history.controls.updateButtons();
       }
-    
-      if (this.onChange) this.onChange();
+
+    let cleanUser = this.getStoreData().find((q) => q.id==datum.id);
+      if (this.onChange) this.onChange({"op_type": datum.op_type, ...cleanUser, id: datum.id});
     };
     
     

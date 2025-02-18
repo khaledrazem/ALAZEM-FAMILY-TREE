@@ -4,6 +4,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import FamilyTree from "./admin-tree";
 import styles from '@/styles/tree.module.css';
 import FamilyHeader from "@/component/header/header";
+import FloatingButtons from "@/component/floating-buttons";
 
 export default function Home() {
   return (
@@ -12,6 +13,7 @@ export default function Home() {
       <div className={styles.container}>
         <FamilyTree/>
       </div>
+      <FloatingButtons />
     </>
   );
 }
