@@ -14,6 +14,7 @@
     "@emotion/styled": "^11.14.0",
     "@mui/material": "^6.4.2",
     "@supabase/supabase-js": "^2.48.1",
+    "cloudinary": "^2.5.1",
     "dotenv": "^16.4.7",
     "family-chart": "^0.2.1",
     "next": "15.1.6",

@@ -1,13 +1,16 @@
 import React, { useEffect, useRef } from "react";
 import f3 from '../../custome-modules/family-chart/dist/family-chart.js';
 import SupaBaseAdminAPI from "@/api/supabase-admin.js";
+import { useRouter } from "next/router.js";
 
 export default function FamilyTree() {
   const containerRef = useRef();
   const chartRef = useRef();
   const editTreeRef = useRef();
+  const router = useRouter();
 
   const supabaseApi = new SupaBaseAdminAPI();
+  let f3Chart=null
 
   // Function to get the ID of the oldest user
   function getOldestUserId(users) {
@@ -33,29 +36,11 @@ export default function FamilyTree() {
 
     console.log(usersData);
     usersData = usersData.map((user) => {
-      return {
-        id: user.id,
-        data: {
-          "first name": user.first_name,
-          "last name": user.last_name,
-          "label": user.first_name + " " + user.last_name,
-          "gender": user.gender,
-          "birthday": user.dob,
-          "avatar": user.avatar,
-        },
-        "rels": {
-          "father": user.father,
-          "mother": user.mother,
-          "spouses": user.spouse,
-          "children": user.children ? user.children : [],
-          "siblings": user.siblings ? user.siblings : []
-        }
-
-      }
+      return formatDataForChart(user)
     });
 
     function create(data) {
-      const f3Chart = f3.createChart('#FamilyChart', data)
+      f3Chart = f3.createChart('#FamilyChart', data)
         .setTransitionTime(1000)
         .setCardXSpacing(450)
         .setCardYSpacing(450)
@@ -65,7 +50,7 @@ export default function FamilyTree() {
         .setSingleParentEmptyCard(false, { label: 'ADD' });
 
       const f3Card = f3Chart.setCard(f3.CardHtml)
-        .setCardDisplay([["first name", "last name"], ["birthday"]])
+        .setCardDisplay([["first name", "last name"],["arabic name",], ["birthday"]])
         .setCardDim({})
         .setMiniTree(true)
         .setStyle('custom')
@@ -75,7 +60,7 @@ export default function FamilyTree() {
         .fixed(true)
 
 
-        .setFields(["first name", "last name", "birthday", "avatar"])
+        .setFields(["first name", "last name", "arabic name", "birthday", "avatar"])
         .setEditFirst(false);
 
       f3EditTree.setEdit();
@@ -86,7 +71,7 @@ export default function FamilyTree() {
         console.log(f3EditTree.history)
         console.log(f3EditTree.getStoreData())
         console.log(f3EditTree.getDataJson())
-
+        
       });
 
 
@@ -143,20 +128,7 @@ export default function FamilyTree() {
       const userId = data.op_type == "EDIT" ? data.id : null;
 
       // Format the base request with all fields
-      const formattedRequest = {
-        "first_name": data.data["first name"] ? data.data["first name"] : null,
-        "last_name": data.data["last name"] ? data.data["last name"] : null,
-        "gender": data.data["gender"] ? data.data["gender"] : null,
-        "dob": data.data["birthday"] ? data.data["birthday"] : null,
-        "marital_status": data.rels.spouse ? "Married" : "Single",
-        "avatar": data.data["avatar"] ? data.data["avatar"] : null,
-
-        "father": data.rels.father ? data.rels.father : null,
-        "mother": data.rels.mother ? data.rels.mother : null,
-        "siblings": data.rels.siblings && data.rels.siblings.length > 0 ? data.rels.siblings.map((sibling) => sibling.id) : null,
-        "children": data.rels.children && data.rels.children.length > 0 ? data.rels.children.map((child) => child.id) : null,
-
-      };
+      const formattedRequest = formatDataForDatabase(data);
 
       if (data.op_type == "EDIT") {
         // Get existing user data to compare changes
@@ -186,6 +158,13 @@ export default function FamilyTree() {
       // Update family members' relationships
       const finalUserId = data.op_type == "EDIT" ? userId : userResponse.id;
       await updateFamilyRelationships(formattedRequest, finalUserId);
+      let usersData = await supabaseApi.getAllUsers();
+      usersData = usersData.map((user) => {
+        return formatDataForChart(user)
+      });
+      f3Chart.updateData({main_id: getOldestUserId(usersData), ...usersData});
+      router.reload()
+
     } catch (error) {
       console.error('Error approving request:', error);
       return;
@@ -308,9 +287,6 @@ export default function FamilyTree() {
 
       // Update siblings' siblings array and ensure reciprocal relationships
       if (formattedRequest.siblings && formattedRequest.siblings.length > 0) {
-        // First, get the current user's siblings array
-        const currentUserDetails = await supabaseApi.getUserDetails(newUserId);
-        const currentUserSiblings = new Set(currentUserDetails?.siblings || []);
 
         for (const siblingId of formattedRequest.siblings) {
           // Skip if trying to add self as sibling
@@ -325,16 +301,37 @@ export default function FamilyTree() {
               siblings: updatedSiblings
             });
 
-            // Add this sibling to current user's siblings set
-            currentUserSiblings.add(siblingId);
           }
         }
 
-        // Update current user's siblings array
-        await supabaseApi.updateUser({
-          id: newUserId,
-          siblings: Array.from(currentUserSiblings)
-        });
+
+      }
+
+      // Update spouse's children array and ensure reciprocal relationships
+      if (formattedRequest.children && formattedRequest.children.length > 0) {
+
+        for (const childId of formattedRequest.children) {
+          // Skip if trying to add self as sibling
+          if (childId === newUserId) continue;
+
+          const childDetails = await supabaseApi.getUserDetails(childId);
+          if (childDetails && childDetails.id) {
+            // Update sibling's siblings array
+            let updateData = {
+              id: childDetails.id
+            };
+            
+            if (formattedRequest.gender === "F") {
+              updateData.mother = newUserId;
+            } else if (formattedRequest.gender === "M") {
+              updateData.father = newUserId;
+            }
+            
+            await supabaseApi.updateUser(updateData);
+          }
+        }
+
+
       }
     } catch (error) {
       console.error('Error updating family relationships:', error);
@@ -355,3 +352,44 @@ export default function FamilyTree() {
 
   return <div className="f3 f3-cont" id="FamilyChart" ref={containerRef}></div>;
 }
+function formatDataForChart(user) {
+  return {
+    id: user.id,
+    data: {
+      "first name": user.first_name,
+      "last name": user.last_name,
+      "arabic name": user.arabic_name,
+      "label": user.first_name + " " + user.last_name,
+      "gender": user.gender,
+      "birthday": user.dob,
+      "avatar": user.avatar,
+    },
+    "rels": {
+      "father": user.father,
+      "mother": user.mother,
+      "spouses": user.spouse ? [user.spouse] : null,
+      "children": user.children ? user.children : null,
+      "siblings": user.siblings ? user.siblings : null
+    }
+  };
+}
+
+function formatDataForDatabase(data) {
+  return {
+    "first_name": data.data["first name"] ? data.data["first name"] : null,
+    "last_name": data.data["last name"] ? data.data["last name"] : null,
+    "arabic_name": data.data["arabic name"] ? data.data["arabic name"] : null,
+
+    "gender": data.data["gender"] ? data.data["gender"] : null,
+    "dob": data.data["birthday"] ? data.data["birthday"] : null,
+    "marital_status": data.rels.spouses ? "Married" : "Single",
+    "avatar": data.data["avatar"] ? data.data["avatar"] : null,
+
+    "spouse": data?.rels?.spouses ? data?.rels?.spouses[0] : null,
+    "father": data.rels.father ? data.rels.father : null,
+    "mother": data.rels.mother ? data.rels.mother : null,
+    "siblings": data.rels.siblings && data.rels.siblings.length > 0 ? data.rels.siblings : null,
+    "children": data.rels.children && data.rels.children.length > 0 ? data.rels.children : null,
+  };
+}
+

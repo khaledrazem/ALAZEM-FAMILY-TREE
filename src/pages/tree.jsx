@@ -50,20 +50,21 @@ export default function FamilyTree() {
           data: {
             "first name": user.first_name,
             "last name": user.last_name,
+            "arabic name": user.arabic_name,
             "label": user.first_name + " " + user.last_name,
             "gender": user.gender,
-            "birthDay": user.dob,
+            "birthday": user.dob,
             "avatar": user.avatar,
           },
-            "rels": {
-                "father": user.father,
-                "mother": user.mother,
-                "spouses": user.spouse,
-                "children": user.children? user.children : [],
-                "siblings": user.siblings? user.siblings : []
-            }
-        
-    }
+          "rels": {
+            "father": user.father,
+            "mother": user.mother,
+            "spouses": user.spouse ? [user.spouse]:null,
+            "children": user.children ? user.children : null,
+            "siblings": user.siblings ? user.siblings : null
+          }
+  
+        }
 });
 console.log(usersData);
 
@@ -82,7 +83,7 @@ console.log(usersData);
           .updateMainId(oldestUserId)
           .setSingleParentEmptyCard(false, {label: 'ADD'})
         const f3Card = f3Chart.setCard(f3.CardHtml)
-          .setCardDisplay([["first name","last name"],["birthDay"]])
+          .setCardDisplay([["first name","last name"],["arabic name"],["birthday"]])
           .setCardDim({
           })
           .setStyle('custom')
