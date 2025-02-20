@@ -65,7 +65,8 @@ export default function UserPage() {
           gender: data.gender,
           birthday: data.dob,
           avatar: data.avatar || 'https://static8.depositphotos.com/1009634/988/v/950/depositphotos_9883921-stock-illustration-no-user-profile-picture.jpg',
-          maritalStatus: data.marital_status
+          maritalStatus: data.marital_status,
+          galleryPhotos: data.gallery_photos
         },
         rels: {
           father: data.father,
@@ -178,7 +179,18 @@ export default function UserPage() {
           />
         </div>
 
+      
+
         <div className={styles.userdata}>
+
+        <div className={styles.datarow}>
+            <label>
+              <span className={styles['label-title']}>Arabic Name:</span>
+              {userDetails.data.arabicName ?
+                (userDetails.data.arabicName ) :
+                ' '}
+            </label>
+          </div>
           <div className={styles.datarow}>
             <label>
               <span className={styles['label-title']}>Date of birth:</span>
@@ -257,6 +269,19 @@ export default function UserPage() {
               </label>
             </div>
           )}
+
+        {userDetails?.data?.galleryPhotos?.length > 0 && (
+          <div className={styles.gallerySection}>
+            <h2>Gallery Photos</h2>
+            <div className={styles.gallery}>
+              {userDetails.data.galleryPhotos.map((photo, index) => (
+                <div key={index} className={styles.galleryItem}>
+                  <img src={photo} alt={`Gallery photo ${index + 1}`} />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         </div>
       </div>
 

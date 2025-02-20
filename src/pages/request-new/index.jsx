@@ -18,6 +18,7 @@ export default function UserPage() {
     let requestdata = {
       "first_name": data.firstName ? data.firstName : null,
       "last_name": data.lastName ? data.lastName : null,
+      "arabic_name": data.arabicName ? data.arabicName: null,
       "gender": data.gender ? data.gender : null,
       "dob" : data.dob ? data.dob : null,
       "marital_status": data.maritalStatus ? data.maritalStatus : null,
@@ -70,7 +71,6 @@ export default function UserPage() {
 
       <div className={styles.buttons}>
         <button onClick={() => router.back()}>Back</button>
-        <input  type="submit" value="Submit"/>
         </div>
     </div>
 

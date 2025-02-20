@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import styles from './file-upload-box.module.css';
+import { Controller } from "react-hook-form";
 
 /**
  * FileUploadBox Component
@@ -9,7 +10,7 @@ import styles from './file-upload-box.module.css';
  * @param {number} props.MIN_FILE_SIZE - Minimum file size in KB (default: 0KB)
  * @param {number} props.MAX_IMAGES - Maximum number of images allowed (default: 5)
  * @param {string} props.name - Form field name
- * @param {Function} props.register - React Hook Form register function
+ * @param {Function} props.control - React Hook Form control function
  * @param {Array} props.initialImages - Initial images to display
  */
 const FileUploadBox = ({
@@ -18,7 +19,7 @@ const FileUploadBox = ({
     MIN_FILE_SIZE = 0,
     MAX_IMAGES = 5,
     name,
-    register,
+    control,
     initialImages = [],
     required = false,
 }) => {
@@ -108,38 +109,47 @@ return (
     <div className={styles['input-box']}>
         <div className={styles['img-upload-box']}>
             <div className={styles['brows-file-wrapper']}>
-                <input
-                    name={name}
-                    id={name}
-                    type="file"
-                    accept="image/*"
-                    data-multiple-caption="{count} files selected"
-                    {...register(name, {
-                        onChange: (event) => {
-                            if (validateSelectedFile(event.target.files[0])) {
-                                const newImages = [...selectedImages, ...Array.from(event.target.files)];
-                                setSelectedImages(newImages);
-                                
-                                // Create a new FileList using DataTransfer
-                                const dataTransfer = new DataTransfer();
-                                newImages.forEach(image => {
-                                    if (image instanceof File) {
-                                        dataTransfer.items.add(image);
-                                    }
-                                });
-                                
-                                // Update the form field with the new FileList
-                                event.target.files = dataTransfer.files;
-                                
-                                if (setImages) {
-                                    setImages(newImages);
-                                }
-                            }
-                        },
-                        required: required
-                    })}
-                    style={{ display: 'none' }}
-                />
+           <Controller
+  name={name}
+  control={control}
+  rules={{ required }}
+  render={({ field: { onChange, ref } }) => (
+    <input
+      id={name}
+      type="file"
+      accept="image/*"
+      data-multiple-caption="{count} files selected"
+      onChange={(event) => {
+        const files = Array.from(event.target.files);
+        if (files.every((file) => validateSelectedFile(file))) {
+          const newImages = [...selectedImages, ...files];
+          setSelectedImages(newImages);
+          console.log("SELECTED");
+          console.log(newImages);
+
+          // Create a new FileList using DataTransfer
+          const dataTransfer = new DataTransfer();
+          newImages.forEach((image) => {
+            dataTransfer.items.add(image);
+          });
+
+          // Update the form field with the new FileList
+          event.target.files = dataTransfer.files;
+
+          if (setImages) {
+            setImages(newImages);
+          }
+
+          onChange(dataTransfer.files);
+        }
+      }}
+      style={{ display: 'none' }}
+    />
+  )}
+    style={{ display: 'none' }}
+
+/>
+
                 
                 {selectedImages.length > 0 ? (
                     <div className={styles['img-upload-row']}>

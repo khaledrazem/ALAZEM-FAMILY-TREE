@@ -11,6 +11,7 @@ import TextField from '@mui/material/TextField';
 import { Box } from '@mui/material';
 import UserFields from '@/component/user-fields';
 import SupaBaseUserAPI from '@/api/supabase-user';
+import CloudinaryUserAPI from '@/api/cloudinary-user';
 
 
 
@@ -19,39 +20,43 @@ export default function UserPage() {
   const userIDqry = router.query.userId;
   const [userId, setUserId] = useState(null);
   const supabaseApi = new SupaBaseUserAPI();
+  const cloudinaryApi = new CloudinaryUserAPI();
 
   async function onSubmit(data) {
     console.log(data);
     //TODO: Send data to the database with pending status
 
+    let requestData =   {
+      "first_name": data.firstName ? data.firstName : null,
+      "last_name": data.lastName ? data.lastName : null,
+      "arabic_name": data.arabicName ? data.arabicName: null,
+      "gender": data.gender ? data.gender : null,
+      "dob" : data.dob ? data.dob : null,
+      "marital_status": data.maritalStatus ? data.maritalStatus : null,
+      "avatar":  data.avatar ? await uploadImage( data.avatar[0]) : null,
+      "gallery_photos": data.galleryPhotos && data.galleryPhotos.length > 0
+      ? await uploadImages(data.galleryPhotos)
+      : [],
+    "id_documents": data.identityDocument && data.identityDocument.length > 0
+      ? await uploadImages(data.identityDocument)
+      : [],
+      "email": data.emailAddress ? data.emailAddress : null,
+      "public_email": data.publicEmail ? data.publicEmail : false,
+      "father": data.father ? data.father.id : null,
+      "mother": data.mother ? data.mother.id : null,
+      "siblings": data.siblings && data.siblings.length>0? data.siblings.map((sibling) => sibling.id) : null,
+      "children": data.children && data.children.length>0 ? data.children.map((child) => child.id) : null,
+      "is_editing": true,
+      "existing_id": userId,
+    } 
+
     await supabaseApi.createUserRequest(
-      {
-        "first_name": data.firstName ? data.firstName : null,
-        "last_name": data.lastName ? data.lastName : null,
-        "gender": data.gender ? data.gender : null,
-        "dob" : data.dob ? data.dob : null,
-        "marital_status": data.maritalStatus ? data.maritalStatus : null,
-        "avatar": data.avatar ? data.avatar : null,
-        "gallery_photos": data.galleryPhotos ? uploadImage(data.galleryPhotos) : null,
-        "id_documents": data.identityDocument ?uploadImage(data.identityDocument) : null,
-        "email": data.emailAddress ? data.emailAddress : null,
-        "public_email": data.publicEmail ? data.publicEmail : false,
-        "father": data.father ? data.father.id : null,
-        "mother": data.mother ? data.mother.id : null,
-        "siblings": data.siblings && data.siblings.length>0? data.siblings.map((sibling) => sibling.id) : null,
-        "children": data.children && data.children.length>0 ? data.children.map((child) => child.id) : null,
-        "is_editing": true,
-        "existing_id": userId,
-      } 
+    requestData
     );
 
     router.push('/');
   }
 
-  function uploadImage(images) {
-    //TODO: Upload images to the server and return url
-    return [];
-  }
 
 
   useEffect(() => {
@@ -76,23 +81,20 @@ export default function UserPage() {
 
   );
 
-  function data() {
-    return {
-      "id": "0",
-      "rels": {
-        "spouses": [
-          "055a439f-d985-4128-aca8-24a2f0b9af7e"
-        ]
-      },
-      "data": {
-        "firstName": "Name",
-        "lastName": "Surname",
-        "birthday": 1970,
-        "avatar": "https://static8.depositphotos.com/1009634/988/v/950/depositphotos_9883921-stock-illustration-no-user-profile-picture.jpg",
-        "gender": "M",
-        "maritalStatus": "Married"
-      }
+  async function uploadImages(images) {
+
+    let uploaded = [];
+    for (let count=0;count<images.length;count++) {
+      uploaded.push(await uploadImage(images[count]));
+
     }
+    return uploaded;
+  }
+
+  async function uploadImage(image) {
+
+    let response = await cloudinaryApi.uploadImage(image);
+    return response;
   }
 }
 

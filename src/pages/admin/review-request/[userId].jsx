@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import styles from './review-request.module.css';
 import SupaBaseAdminAPI from '@/api/supabase-admin';
+import CloudinaryUserAPI from '@/api/cloudinary-user';
 
 export default function ReviewRequest() {
   const router = useRouter();
   const { userId } = router.query;
   const [request, setRequest] = useState({});
   const supabaseApi = new SupaBaseAdminAPI();
+  const cloudinaryApi = new CloudinaryUserAPI();
 
 
   const [users, setUsers] = useState([])
@@ -64,6 +66,7 @@ export default function ReviewRequest() {
           avatar: userData.avatar || null,
           firstName: userData.first_name || null,
           lastName: userData.last_name || null,
+          arabicName: userData.arabic_name || null,
           birthday: userData.dob || null,
           gender: userData.gender || null,
           maritalStatus: userData.marital_status || null,
@@ -82,6 +85,26 @@ export default function ReviewRequest() {
 
   };
 
+  async function deleteImageByUrl(url) {
+    let imageName = url.split('/').pop();
+
+        let baseName = imageName.split('.')[0];
+    await cloudinaryApi.deleteImage(baseName);
+  }
+
+  async function deleteImagesByUrl(urls) {
+    if (Array.isArray(urls) )
+    {
+      for (let i=0;i<urls.length;i++) {
+
+        await deleteImageByUrl(urls[i]);
+      }
+    } else if (urls) {
+      await deleteImageByUrl(urls);
+    }
+   
+  }
+
   const handleApprove = async () => {
     try {
       if (!request?.data) {
@@ -97,6 +120,7 @@ export default function ReviewRequest() {
       const formattedRequest = {
         first_name: request.data.firstName || null,
         last_name: request.data.lastName || null,
+        arabic_name: request.data.arabicName || null,
         gender: request.data.gender || null,
         dob: request.data.birthday || null,
         marital_status: request.data.maritalStatus || null,
@@ -141,7 +165,7 @@ export default function ReviewRequest() {
       console.error('Error approving request:', error);
       return;
     }
-    
+    await deleteImagesByUrl(request.data.identityDocuments)
     console.log('Approving request:', userId);
     router.push('/admin/list-requests');
   };
@@ -229,6 +253,10 @@ export default function ReviewRequest() {
       
       // Update request status to rejected in the database
       await supabaseApi.deleteRequest(userId);
+      await deleteImagesByUrl(request.data.identityDocuments)
+      await deleteImagesByUrl(request.data.avatar)
+      await deleteImagesByUrl(request.data.gallaryPhotos)
+
       console.log('Declining request:', userId);
       router.push('/admin/list-requests');
     } catch (error) {
@@ -279,6 +307,10 @@ export default function ReviewRequest() {
                 <div className={styles.infoItem}>
                   <label>Last Name</label>
                   <div>{request?.data?.lastName || 'Not provided'}</div>
+                </div>
+                <div className={styles.infoItem}>
+                  <label>Arabic Name</label>
+                  <div>{request?.data?.arabicName || 'Not provided'}</div>
                 </div>
                 <div className={styles.infoItem}>
                   <label>Date of Birth</label>

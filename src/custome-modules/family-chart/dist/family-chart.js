@@ -1689,7 +1689,15 @@
               <textarea name="${field.id}" 
                 placeholder="${field.label}">${field.initial_value || ''}</textarea>
             </div>
-          ` : ''}
+          ` : field.type === 'image'? `
+           <div class="f3-form-field">
+              <label>${field.label}</label>
+           <input type="file"
+            name="${field.id}"
+            height="296"
+            width="285">
+            </div>
+          ` :''}
         `)).join('')
     
         function infoField() {

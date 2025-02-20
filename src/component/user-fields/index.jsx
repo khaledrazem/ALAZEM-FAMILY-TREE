@@ -81,14 +81,14 @@ useEffect(() => {
               maritalStatus: userDetails.marital_status,
               emailAddress: userDetails.email,
               publicEmail: userDetails.publicEmail,
-              gallaryPhotos: userDetails.gallary_photos,
+              galleryPhotos: userDetails.gallery_photos,
               spouse: users.find((item) => item.id === userDetails?.spouse),
               siblings: userDetails?.siblings ? users.filter((item) => userDetails.siblings.includes(item.id)) : [],
               father: users.find((item) => item.id === userDetails?.father),
               mother: users.find((item) => item.id === userDetails?.mother),
               children: userDetails?.children ? users.filter((item) => userDetails.children.includes(item.id)) : [],
           });
-          setInitialGallaries(userDetails.gallaryPhotos);
+          setInitialGallaries(userDetails.gallery_photos);
       }
 
 
@@ -109,7 +109,8 @@ useEffect(() => {
            name={"avatar"}
            height={296}
            width={285}
-           text={"Profile Photo"}/>
+           text={"Profile Photo"}
+           formImage={userDetails.avatar}/>
         </div>
 
         <div className={styles.userdata}>
@@ -129,6 +130,15 @@ useEffect(() => {
               type='text'
               {...register("lastName", {
                 required: "Please enter your last name.",
+              })} 
+            />
+          </div>
+
+          <div className={styles.datarow}>
+            <label>Arabic full name: </label>
+            <input
+              type='text'
+              {...register("arabicName", {
               })} 
             />
           </div>
@@ -382,17 +392,18 @@ useEffect(() => {
            <div className={styles.datarow}>
             <label onClick={() => console.log(getValues())}>Identity document (To verify your Identity we require an idenitity document that shows your full name and parents name, this image will be deleted as soon as the request is accepted/rejected ): </label>
             <FileUploadBox
-              register={register}
+              control={control}
               name={"identityDocument"}
               required={"Please upload an identity document"}
+
             />
           </div> 
           <div className={styles.datarow}>
             <label>Gallary Photos </label>
             <FileUploadBox
-              register={register}
+              control={control}
               name={"galleryPhotos"}
-              initialImages={initialGallaries}
+              initialImages={userDetails.gallery_photos}
             />
           </div>
         </div>

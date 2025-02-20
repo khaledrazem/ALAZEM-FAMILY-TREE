@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from "react";
 import f3 from '../../custome-modules/family-chart/dist/family-chart.js';
 import SupaBaseAdminAPI from "@/api/supabase-admin.js";
 import { useRouter } from "next/router.js";
+import CloudinaryUserAPI from '@/api/cloudinary-user';
 
 export default function FamilyTree() {
   const containerRef = useRef();
@@ -10,6 +11,9 @@ export default function FamilyTree() {
   const router = useRouter();
 
   const supabaseApi = new SupaBaseAdminAPI();
+  const cloudinaryApi = new CloudinaryUserAPI();
+
+
   let f3Chart=null
 
   // Function to get the ID of the oldest user
@@ -60,7 +64,7 @@ export default function FamilyTree() {
         .fixed(true)
 
 
-        .setFields(["first name", "last name", "arabic name", "birthday", "avatar"])
+        .setFields(["first name", "last name", "arabic name", "birthday", "avatar",{id: "avatar image", label: "avatar image", type: "image"}])
         .setEditFirst(false);
 
       f3EditTree.setEdit();
@@ -104,6 +108,25 @@ export default function FamilyTree() {
     }
   };
 
+  async function deleteImageByUrl(url) {
+    let imageName = url.split('/').pop();
+
+        let baseName = imageName.split('.')[0];
+    await cloudinaryApi.deleteImage(baseName);
+  }
+
+  async function deleteImagesByUrl(urls) {
+    if (Array.isArray(urls) )
+    {
+      for (let i=0;i<urls.length;i++) {
+
+        await deleteImageByUrl(urls[i]);
+      }
+    } else if (urls) {
+      await deleteImageByUrl(urls);
+    }
+   
+  }
 
   async function createUser(data) {
     try {
@@ -119,7 +142,10 @@ export default function FamilyTree() {
         const userToDelete = await supabaseApi.getUserDetails(data.id);
         if (userToDelete) {
           await removeFamilyRelationships(userToDelete);
-        }
+          await deleteImagesByUrl(userToDelete.identityDocuments)
+          await deleteImagesByUrl(userToDelete.avatar)
+          await deleteImagesByUrl(userToDelete.gallaryPhotos)
+                }
         await supabaseApi.deleteUser(data.id);
         return;
       }
@@ -128,7 +154,7 @@ export default function FamilyTree() {
       const userId = data.op_type == "EDIT" ? data.id : null;
 
       // Format the base request with all fields
-      const formattedRequest = formatDataForDatabase(data);
+      const formattedRequest = await formatDataForDatabase(data);
 
       if (data.op_type == "EDIT") {
         // Get existing user data to compare changes
@@ -163,7 +189,7 @@ export default function FamilyTree() {
         return formatDataForChart(user)
       });
       f3Chart.updateData({main_id: getOldestUserId(usersData), ...usersData});
-      router.reload()
+      router.reload();
 
     } catch (error) {
       console.error('Error approving request:', error);
@@ -350,8 +376,7 @@ export default function FamilyTree() {
     return cleanup;
   }, []); // Empty dependency array since we don't need to re-run on any dependencies
 
-  return <div className="f3 f3-cont" id="FamilyChart" ref={containerRef}></div>;
-}
+
 function formatDataForChart(user) {
   return {
     id: user.id,
@@ -374,7 +399,7 @@ function formatDataForChart(user) {
   };
 }
 
-function formatDataForDatabase(data) {
+async function formatDataForDatabase(data) {
   return {
     "first_name": data.data["first name"] ? data.data["first name"] : null,
     "last_name": data.data["last name"] ? data.data["last name"] : null,
@@ -383,7 +408,7 @@ function formatDataForDatabase(data) {
     "gender": data.data["gender"] ? data.data["gender"] : null,
     "dob": data.data["birthday"] ? data.data["birthday"] : null,
     "marital_status": data.rels.spouses ? "Married" : "Single",
-    "avatar": data.data["avatar"] ? data.data["avatar"] : null,
+    "avatar": data.data["avatar image"] ? await uploadImage(data.data["avatar image"]) : data.data["avatar"]? data.data["avatar"] : null,
 
     "spouse": data?.rels?.spouses ? data?.rels?.spouses[0] : null,
     "father": data.rels.father ? data.rels.father : null,
@@ -391,5 +416,13 @@ function formatDataForDatabase(data) {
     "siblings": data.rels.siblings && data.rels.siblings.length > 0 ? data.rels.siblings : null,
     "children": data.rels.children && data.rels.children.length > 0 ? data.rels.children : null,
   };
+
+  async function uploadImage(image) {
+
+    let response = await cloudinaryApi.uploadImage(image);
+    return response;
+  }
 }
 
+return <div className="f3 f3-cont" id="FamilyChart" ref={containerRef}></div>;
+}
