@@ -505,6 +505,7 @@
         }
     
         function offsetOnPartners(a,b) {
+          if (!a?.data || !b?.data) return 0;
           return ((a.data.rels.spouses || []).length + (b.data.rels.spouses || []).length)*.5
         }
       }
@@ -705,7 +706,7 @@
     
       function getTreeMainDatum() {
         if (!state.tree) return null;
-        return state.tree.data.find(d => d.data.id === state.main_id)
+        return state.tree.data.find(d => d.data?.id === state.main_id)
       }
     
       function getTreeDatum(id) {
@@ -944,7 +945,7 @@
     
         let child = datum;
         let itteration1 = 0;
-        while (child !== main_datum.data && itteration1 < 100) {
+        while (child !== main_datum?.data && itteration1 < 100) {
           itteration1++;  // to prevent infinite loop
           const child_link = links_data.find(d => d.target === child && Array.isArray(d.source));
           if (child_link) {
@@ -994,7 +995,7 @@
         return cards_to_main
     
         function getChildren(d) {
-          if (d.data.rels.children) {
+          if (d?.data?.rels?.children) {
             d.data.rels.children.forEach(child_id => {
               const child = all_cards.find(d0 => d0.data.id === child_id);
               if (child) {
@@ -2630,6 +2631,7 @@
     };
     
     EditTree.prototype.open = function(datum) {
+      if (!datum) return;
       if (datum.data.data) datum = datum.data;
       if (this.addRelativeInstance.is_active && !datum._new_rel_data) {
         this.addRelativeInstance.onCancel();

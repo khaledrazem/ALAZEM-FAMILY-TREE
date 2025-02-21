@@ -28,6 +28,9 @@
 .pending {
   color: var(--warning);
 }
+.autocomplete{
+  width: 100%;
+}
 
 .approved {
   color: var(--success);
@@ -104,6 +107,55 @@
 .infoItem div {
   color: var(--foreground);
   font-size: var(--font-size-base);
+}
+
+.editInput {
+  padding: var(--spacing-sm);
+  border: 1px solid var(--surface-light);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
+  color: var(--foreground);
+  background: var(--surface);
+  width: 100%;
+  transition: all 0.2s ease;
+}
+
+.editInput:focus {
+  border-color: var(--primary);
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 25%, transparent);
+}
+
+.infoItem :global(.MuiAutocomplete-root) {
+  width: 100%;
+  margin-top: var(--spacing-xs);
+}
+
+.infoItem :global(.MuiFormControl-root) {
+  width: 100%;
+}
+
+.infoItem :global(.MuiInputBase-root) {
+  background: var(--surface);
+  color: var(--primary);
+}
+
+.infoItem :global(.MuiAutocomplete-popper) {
+  background: var(--surface-light);
+}
+
+.infoItem :global(.MuiAutocomplete-paper) {
+  background: var(--surface-light);
+  color: var(--foreground);
+}
+
+.infoItem :global(.MuiAutocomplete-option) {
+  background: var(--surface-light);
+}
+
+.infoItem :global(.MuiAutocomplete-option[aria-selected="true"]),
+.infoItem :global(.MuiAutocomplete-option:hover) {
+  background: var(--surface) !important;
 }
 
 .documentsSection {

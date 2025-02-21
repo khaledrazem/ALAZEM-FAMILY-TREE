@@ -1,3 +1,8 @@
+.error {
+  color: red;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
 .userform {
     max-width: 1200px;
     margin: 2rem auto;

@@ -41,7 +41,7 @@ export default function FamilyTree() {
         return oldestUser.id;
       };
 
-      const oldestUserId = getOldestUserId(usersData);
+      const oldestUserId = "6f7d2e96-e957-4208-944d-9f37d57e19c1";
       console.log("Oldest User ID:", oldestUserId);
       console.log(usersData);
       usersData = usersData.map((user) => {

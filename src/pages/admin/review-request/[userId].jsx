@@ -3,6 +3,10 @@ import { useRouter } from 'next/router';
 import styles from './review-request.module.css';
 import SupaBaseAdminAPI from '@/api/supabase-admin';
 import CloudinaryUserAPI from '@/api/cloudinary-user';
+import { Controller, useForm } from "react-hook-form";
+import Autocomplete from '@mui/material/Autocomplete';
+import TextField from '@mui/material/TextField';
+import { Box } from '@mui/material';
 
 export default function ReviewRequest() {
   const router = useRouter();
@@ -10,6 +14,19 @@ export default function ReviewRequest() {
   const [request, setRequest] = useState({});
   const supabaseApi = new SupaBaseAdminAPI();
   const cloudinaryApi = new CloudinaryUserAPI();
+  const { register, handleSubmit, control, reset } = useForm();
+
+  useEffect(() => {
+    if (request?.data) {
+      reset({
+        firstName: request.data.firstName,
+        lastName: request.data.lastName,
+        spouse: request.data.spouse,
+        father: request.data.father,
+        mother: request.data.mother
+      });
+    }
+  }, [request, reset]);
 
 
   const [users, setUsers] = useState([])
@@ -105,7 +122,7 @@ export default function ReviewRequest() {
    
   }
 
-  const handleApprove = async () => {
+  const handleApprove = async (formData) => {
     try {
       if (!request?.data) {
         console.error('No request data available');
@@ -118,19 +135,20 @@ export default function ReviewRequest() {
 
       // Format the base request with all fields
       const formattedRequest = {
-        first_name: request.data.firstName || null,
-        last_name: request.data.lastName || null,
-        arabic_name: request.data.arabicName || null,
+        first_name: formData.firstName || null,
+        last_name: formData.lastName || null,
+        arabic_name: formData.arabicName || null,
         gender: request.data.gender || null,
         dob: request.data.birthday || null,
         marital_status: request.data.maritalStatus || null,
         avatar: request.data.avatar || null,
         gallery_photos: request.data.gallaryPhotos || null,
         email: request.data.publicEmail ? request.data.emailAddress || null : null,
-        father: request.data.father?.id || null,
-        mother: request.data.mother?.id || null,
+        father: formData.father?.id || null,
+        mother: formData.mother?.id || null,
         siblings: request.data.siblings?.length > 0 ? request.data.siblings.map(sibling => sibling.id) : null,
-        children: request.data.children?.length > 0 ? request.data.children.map(child => child.id) : null
+        children: request.data.children?.length > 0 ? request.data.children.map(child => child.id) : null,
+        spouse: formData.spouse?.id || null
       };
 
       if (isUpdate) {
@@ -277,7 +295,7 @@ export default function ReviewRequest() {
   }
 
   return (
-    <div className={styles.container}>
+    <form onSubmit={handleSubmit(handleApprove)} className={styles.container}>
       <div className={styles.header}>
         <h1>Review Request</h1>
         
@@ -289,9 +307,9 @@ export default function ReviewRequest() {
       <div className={styles.content}>
         <div className={styles.profileSection}>
           {request?.data?.avatar? <div className={styles.avatarSection}>
-            <img 
-              src={request.data.avatar} 
-              alt="Profile" 
+            <img
+              src={request.data.avatar}
+              alt="Profile"
               className={styles.avatar}
             />
           </div>: null}
@@ -302,16 +320,32 @@ export default function ReviewRequest() {
               <div className={styles.infoGrid}>
                 <div className={styles.infoItem}>
                   <label>First Name</label>
-                  <div>{request?.data?.firstName || 'Not provided'}</div>
+                  <input
+                    type="text"
+                    {...register("firstName")}
+                    defaultValue={request?.data?.firstName || ''}
+                    className={styles.editInput}
+                  />
                 </div>
                 <div className={styles.infoItem}>
                   <label>Last Name</label>
-                  <div>{request?.data?.lastName || 'Not provided'}</div>
+                  <input
+                    type="text"
+                    {...register("lastName")}
+                    defaultValue={request?.data?.lastName || ''}
+                    className={styles.editInput}
+                  />
                 </div>
                 <div className={styles.infoItem}>
                   <label>Arabic Name</label>
-                  <div>{request?.data?.arabicName || 'Not provided'}</div>
+                  <input
+                    type="text"
+                    {...register("arabicName")}
+                    defaultValue={request?.data?.arabicName || ''}
+                    className={styles.editInput}
+                  />
                 </div>
+           
                 <div className={styles.infoItem}>
                   <label>Date of Birth</label>
                   <div>{request?.data?.birthday ? formatDate(request.data.birthday) : 'Not provided'}</div>
@@ -334,24 +368,93 @@ export default function ReviewRequest() {
             <div className={styles.infoGroup}>
               <h2>Family Information</h2>
               <div className={styles.infoGrid}>
-                {request?.data?.spouse?.data && (
-                  <div className={styles.infoItem}>
-                    <label>Spouse</label>
-                    <div>{`${request.data.spouse.data.firstName || ''} ${request.data.spouse.data.lastName || ''}  ${request.data.spouse.data.birthday || ''}`}</div>
-                  </div>
-                )}
-                {request?.data?.father?.data && (
-                  <div className={styles.infoItem}>
-                    <label>Father</label>
-                    <div>{`${request.data.father.data.firstName || ''} ${request.data.father.data.lastName || ''}  ${request.data.father.data.birthday || ''}`}</div>
-                  </div>
-                )}
-                {request?.data?.mother?.data && (
-                  <div className={styles.infoItem}>
-                    <label>Mother</label>
-                    <div>{`${request.data.mother.data.firstName || ''} ${request.data.mother.data.lastName || ''}  ${request.data.mother.data.birthday || ''}`}</div>
-                  </div>
-                )}
+                <div className={styles.infoItem}>
+                  <label>Spouse</label>
+                  <Controller
+                    control={control}
+                    name="spouse"
+                     className='autocomplete'
+                    defaultValue={request?.data?.spouse || null}
+                    render={({ field: { onChange, value } }) => (
+                      <Autocomplete
+                        value={value || null}
+                        onChange={(event, item) => {
+                          onChange(item);
+                        }}
+                        disablePortal
+                        options={users}
+                        className='autocomplete'
+
+                        getOptionLabel={(option) =>
+                          `${option.data.firstName} ${option.data.lastName} (DOB: ${option.data.birthday})`
+                        }
+                        sx={{ width: 300 }}
+                        renderInput={(params) => <TextField {...params} label="Spouse" />}
+                        renderOption={(props, option) => (
+                          <Box component="li" {...props}>
+                            {option.data.firstName}{" "}{option.data.lastName}{" "}{"DOB: "}{option.data.birthday}
+                          </Box>
+                        )}
+                      />
+                    )}
+                  />
+                </div>
+                <div className={styles.infoItem}>
+                  <label>Father</label>
+                  <Controller
+                    control={control}
+                    name="father"
+                    defaultValue={request?.data?.father || null}
+                    render={({ field: { onChange, value } }) => (
+                      <Autocomplete
+                        value={value || null}
+                        onChange={(event, item) => {
+                          onChange(item);
+                        }}
+                        disablePortal
+                        options={users}
+                        getOptionLabel={(option) =>
+                          `${option.data.firstName} ${option.data.lastName} (DOB: ${option.data.birthday})`
+                        }
+                        sx={{ width: 300 }}
+                        renderInput={(params) => <TextField {...params} label="Father" />}
+                        renderOption={(props, option) => (
+                          <Box component="li" {...props}>
+                            {option.data.firstName}{" "}{option.data.lastName}{" "}{"DOB: "}{option.data.birthday}
+                          </Box>
+                        )}
+                      />
+                    )}
+                  />
+                </div>
+                <div className={styles.infoItem}>
+                  <label>Mother</label>
+                  <Controller
+                    control={control}
+                    name="mother"
+                    defaultValue={request?.data?.mother || null}
+                    render={({ field: { onChange, value } }) => (
+                      <Autocomplete
+                        value={value || null}
+                        onChange={(event, item) => {
+                          onChange(item);
+                        }}
+                        disablePortal
+                        options={users}
+                        getOptionLabel={(option) =>
+                          `${option.data.firstName} ${option.data.lastName} (DOB: ${option.data.birthday})`
+                        }
+                        sx={{ width: 300 }}
+                        renderInput={(params) => <TextField {...params} label="Mother" />}
+                        renderOption={(props, option) => (
+                          <Box component="li" {...props}>
+                            {option.data.firstName}{" "}{option.data.lastName}{" "}{"DOB: "}{option.data.birthday}
+                          </Box>
+                        )}
+                      />
+                    )}
+                  />
+                </div>
                   {request?.data?.children && (
                   <div className={styles.infoItem}>
                     <label>Children</label>
@@ -401,24 +504,25 @@ export default function ReviewRequest() {
       </div>
 
       <div className={styles.actions}>
-        <button onClick={() => router.back()} className={styles.backButton}>
+        <button type="button" onClick={() => router.back()} className={styles.backButton}>
           Back
         </button>
         <div className={styles.actionButtons}>
-          <button 
-            onClick={handleDecline} 
+          <button
+            type="button"
+            onClick={handleDecline}
             className={`${styles.button} ${styles.declineButton}`}
           >
             Decline
           </button>
-          <button 
-            onClick={handleApprove} 
+          <button
+            type="submit"
             className={`${styles.button} ${styles.approveButton}`}
           >
             Approve
           </button>
         </div>
       </div>
-    </div>
+    </form>
   );
 }

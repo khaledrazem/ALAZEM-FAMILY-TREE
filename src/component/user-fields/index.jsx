@@ -10,13 +10,12 @@ import TextField from '@mui/material/TextField';
 import { Box } from '@mui/material';
 import SupaBaseUserAPI from '@/api/supabase-user';
 
-export default function UserFields({isEdit=false, isAdminPreview=false, userId=null, onSubmit, submitLabel="Submit"}) {
+export default function UserFields({isEdit=false, userId=null, onSubmit, submitLabel="Submit"}) {
   const router = useRouter()
-  const { register, handleSubmit, reset, getValues, control, watch } = useForm();
+  const { register, handleSubmit, reset, getValues, control, formState: { errors } } = useForm();
   const supabaseApi = new SupaBaseUserAPI();
 
   const [users, setUsers] = useState([])
-  const [initialGallaries, setInitialGallaries] = useState([])
   const [userDetails, setUserDetails] = useState({});
 
 
@@ -88,7 +87,6 @@ useEffect(() => {
               mother: users.find((item) => item.id === userDetails?.mother),
               children: userDetails?.children ? users.filter((item) => userDetails.children.includes(item.id)) : [],
           });
-          setInitialGallaries(userDetails.gallery_photos);
       }
 
 
@@ -101,7 +99,7 @@ useEffect(() => {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className={styles.userform}>
-      <label>Keep in mind that all infomraiton provided here will be avaliable publicly (except for identity documents)</label>
+      <label>Keep in mind that all information provided here will be available publicly (except for identity documents)</label>
 
       <div className={styles.userinfo}>
         <div className={styles.avatar}>
@@ -120,8 +118,10 @@ useEffect(() => {
               type='text'
               {...register("firstName", {
                 required: "Please enter your first name.",
-              })} 
+              })}
+              aria-invalid={errors.firstName ? "true" : "false"}
             />
+            {errors.firstName && <span role="alert" className={styles.error}>{errors.firstName.message}</span>}
           </div>
 
           <div className={styles.datarow}>
@@ -130,8 +130,10 @@ useEffect(() => {
               type='text'
               {...register("lastName", {
                 required: "Please enter your last name.",
-              })} 
+              })}
+              aria-invalid={errors.lastName ? "true" : "false"}
             />
+            {errors.lastName && <span role="alert" className={styles.error}>{errors.lastName.message}</span>}
           </div>
 
           <div className={styles.datarow}>
@@ -150,6 +152,7 @@ useEffect(() => {
               register={register}
               rules={{ required: "Please select a date of birth" }}
             />
+            {errors.dob && <span role="alert" className={styles.error}>{errors.dob.message}</span>}
           </div>
 
           <div className={styles.datarow}>
@@ -189,6 +192,7 @@ useEffect(() => {
               />
               Female
             </label>
+            {errors.gender && <span role="alert" className={styles.error}>{errors.gender.message}</span>}
           </div>
 
           <div className={styles.datarow}>
@@ -198,7 +202,7 @@ useEffect(() => {
                 type="radio"
                 value="Married"
                 {...register("maritalStatus", {
-                  required: "Please select gender.",
+                  required: "Please select marital status.",
                 })}
               />
               Married
@@ -326,7 +330,7 @@ useEffect(() => {
                 <Autocomplete
                 value={value || []}
 
-                onChange={(event, item) => {
+                onChange={(_event, item) => {
                     onChange(item);
                   }}
                   multiple
@@ -395,11 +399,11 @@ useEffect(() => {
               control={control}
               name={"identityDocument"}
               required={"Please upload an identity document"}
-
             />
+            {errors.identityDocument && <span role="alert" className={styles.error}>{errors.identityDocument.message}</span>}
           </div> 
           <div className={styles.datarow}>
-            <label>Gallary Photos </label>
+            <label>Gallery Photos </label>
             <FileUploadBox
               control={control}
               name={"galleryPhotos"}
