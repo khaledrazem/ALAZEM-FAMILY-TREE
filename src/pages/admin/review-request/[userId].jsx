@@ -35,7 +35,7 @@ export default function ReviewRequest() {
     //TODO: Get users from the database with only first name and last name and DOB
     let usersData = await supabaseApi.getAllUsersBrief();
 
-    console.log(usersData);
+    
     usersData = usersData.map((user) => {
       return {
         id: user.id,
@@ -49,9 +49,9 @@ export default function ReviewRequest() {
   }
 });
     setUsers(usersData);
-    console.log(users);
-    console.log("USERS")
-    console.log(usersData);
+    
+    
+    
 
   }
 
@@ -169,10 +169,10 @@ export default function ReviewRequest() {
         }
 
         userResponse = await supabaseApi.updateUser(updateRequest);
-        console.log('Updated user:', userResponse);
+        
       } else {
         userResponse = await supabaseApi.createUser(formattedRequest);
-        console.log('Created user:', userResponse);
+        
       }
 
       // Update family members' relationships
@@ -184,7 +184,7 @@ export default function ReviewRequest() {
       return;
     }
     await deleteImagesByUrl(request.data.identityDocuments)
-    console.log('Approving request:', userId);
+    
     router.push('/admin/list-requests');
   };
 
@@ -275,7 +275,7 @@ export default function ReviewRequest() {
       await deleteImagesByUrl(request.data.avatar)
       await deleteImagesByUrl(request.data.gallaryPhotos)
 
-      console.log('Declining request:', userId);
+      
       router.push('/admin/list-requests');
     } catch (error) {
       console.error('Error declining request:', error);

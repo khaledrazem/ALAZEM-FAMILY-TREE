@@ -12,7 +12,7 @@ class SupaBaseAdminAPI {
     if (!supabaseUrl || !supabaseKey) {
       throw new Error('Missing Supabase environment variables. Please check your .env configuration.');
     }
-    console.log(supabaseKey);
+    
     this.supabase = createClient(supabaseUrl, supabaseKey);
   }
 
@@ -25,13 +25,13 @@ class SupaBaseAdminAPI {
       .from('user_details')
       .select('id,first_name,last_name,avatar,gender,dob');
 
-      console.log(user_details);
-      console.log(error);
+      
+      
 
     if (!error) {
       return user_details;
     } else {
-      console.log("Could not fetch user details");
+      
       return [];
     }
   }
@@ -45,13 +45,13 @@ class SupaBaseAdminAPI {
       .from('user_details')
       .select('*');
 
-      console.log(user_details);
-      console.log(error);
+      
+      
 
     if (!error) {
       return user_details;
     } else {
-      console.log("Could not fetch users details");
+      
       return [];
     }
   }
@@ -70,13 +70,13 @@ class SupaBaseAdminAPI {
       .select('*')
       .eq('id', userId)
       .single();
-      console.log(user_details)
+      
 
     if (!error) {
       return user_details;
     } else {
-      console.log("Could not fetch user details");
-      console.log(error)
+      
+      
       return null;
     }
   }
@@ -95,7 +95,7 @@ class SupaBaseAdminAPI {
     if (!error) {
       return user_requests;
     } else {
-      console.log("Could not fetch user requests");
+      
       return null;
     }
   }
@@ -116,7 +116,7 @@ class SupaBaseAdminAPI {
     if (!error) {
       return user_requests;
     } else {
-      console.log("Could not fetch user request by ID");
+      
       return null;
     }
   }
@@ -140,8 +140,8 @@ class SupaBaseAdminAPI {
     if (!error) {
       return data;
     } else {
-      console.log("Could not create user");
-      console.log(error)
+      
+      
       throw Error
     }
   }
@@ -158,8 +158,8 @@ class SupaBaseAdminAPI {
     .eq('id', userId)
       
     if (error){
-      console.log("Could not delete user request");
-      console.log(error)
+      
+      
     }
   }
 
@@ -175,8 +175,8 @@ class SupaBaseAdminAPI {
     .eq('id', userId)
       
     if (error){
-      console.log("Could not delete user ");
-      console.log(error)
+      
+      
     }
   }
 
@@ -185,7 +185,7 @@ class SupaBaseAdminAPI {
       this.setupClient();
     }
 
-    console.log(userDetails)
+    
     const { id, ...noIdDetails } = userDetails;
 
     const { data, error } = await this.supabase
@@ -196,8 +196,8 @@ class SupaBaseAdminAPI {
             
     
     if (error){
-      console.log(error)
-      console.log("Could not update user");
+      
+      
     }
   }
 
@@ -215,13 +215,13 @@ class SupaBaseAdminAPI {
         .select('*')
         .eq('id', userId)
         .single();
-        console.log(user_details)
+        
   
       if (!error) {
         return user_details;
       } else {
-        console.log("Could not fetch user details");
-        console.log(error)
+        
+        
         return null;
       }
     }

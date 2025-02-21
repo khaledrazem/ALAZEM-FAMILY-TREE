@@ -23,7 +23,7 @@ export default function UserPage() {
   const cloudinaryApi = new CloudinaryUserAPI();
 
   async function onSubmit(data) {
-    console.log(data);
+    
     //TODO: Send data to the database with pending status
 
     let requestData =   {
@@ -60,8 +60,8 @@ export default function UserPage() {
 
 
   useEffect(() => {
-    console.log("userIDqry");
-    console.log(userIDqry);
+    
+    
 
     if (userIDqry) {
       setUserId(userIDqry);

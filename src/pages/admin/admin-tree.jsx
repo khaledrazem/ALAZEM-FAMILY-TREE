@@ -38,7 +38,7 @@ export default function FamilyTree() {
     let usersData = await supabaseApi.getAllUsers();
     const oldestUserId = "6f7d2e96-e957-4208-944d-9f37d57e19c1";
 
-    console.log(usersData);
+    
     usersData = usersData.map((user) => {
       return formatDataForChart(user)
     });
@@ -69,12 +69,9 @@ export default function FamilyTree() {
 
       f3EditTree.setEdit();
       f3EditTree.setOnChange((data) => {
-        console.log("UPDATE")
+        
           createUser(data);
-        console.log(data)
-        console.log(f3EditTree.history)
-        console.log(f3EditTree.getStoreData())
-        console.log(f3EditTree.getDataJson())
+        
         
       });
 
@@ -95,8 +92,8 @@ export default function FamilyTree() {
 
 
 
-    console.log("INITT")
-    console.log(usersData)
+    
+    
     create(usersData);
   };
 
@@ -130,8 +127,8 @@ export default function FamilyTree() {
 
   async function createUser(data) {
     try {
-      console.log("DATA")
-      console.log(data)
+      
+      
       if (!data) {
         console.error('No request data available');
         return;
@@ -172,13 +169,13 @@ export default function FamilyTree() {
             updateRequest[field] = formattedRequest[field];
           }
         }
-        console.log(updateRequest)
+        
 
         userResponse = await supabaseApi.updateUser(updateRequest);
-        console.log('Updated user:', userResponse);
+        
       } else {
         userResponse = await supabaseApi.createUser(formattedRequest);
-        console.log('Created user:', userResponse);
+        
       }
 
       // Update family members' relationships

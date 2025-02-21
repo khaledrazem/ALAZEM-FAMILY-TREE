@@ -23,7 +23,7 @@ export default function UserFields({isEdit=false, userId=null, onSubmit, submitL
     //TODO: Get users from the database with only first name and last name and DOB
     let usersData = await supabaseApi.getAllUsersBrief();
 
-    console.log(usersData);
+    
     usersData = usersData.map((user) => {
       return {
         id: user.id,
@@ -41,7 +41,7 @@ export default function UserFields({isEdit=false, userId=null, onSubmit, submitL
 
   async function getDisplayUserDetails() {
     if (isEdit && !userId){
-      console.log("userid not provided");
+      
       router.push("/")
     }
 
@@ -55,8 +55,8 @@ export default function UserFields({isEdit=false, userId=null, onSubmit, submitL
     const fetchData = async () => {
         await getSimpleUsers();
 
-        console.log(userId);
-        console.log(isEdit);
+        
+        
         if (isEdit && userId) {
             await getDisplayUserDetails();
            
@@ -64,13 +64,13 @@ export default function UserFields({isEdit=false, userId=null, onSubmit, submitL
     };
 
     fetchData();
-    console.log(userDetails)
+    
 }, [userId]);
 
 useEffect(() => {
   const fetchData = async () => {
     
-          console.log(userDetails)
+          
           reset({
               avatar: userDetails.avatar,
               firstName: userDetails.first_name,
@@ -91,9 +91,8 @@ useEffect(() => {
 
 
   fetchData();
-  console.log(users.filter((item) => item.id == userDetails.siblings) )
-  console.log(users)
-  console.log(userDetails)
+  
+  
 }, [userDetails]);
 
 
@@ -358,7 +357,7 @@ useEffect(() => {
           </div>
 
           <div className={styles.datarow}>
-            <label onClick={() => console.log(getValues())}>Children: </label>
+            <label>Children: </label>
             <Controller
               control={control}
               name="children"
@@ -394,7 +393,7 @@ useEffect(() => {
           </div>
 
            <div className={styles.datarow}>
-            <label onClick={() => console.log(getValues())}>Identity document (To verify your Identity we require an idenitity document that shows your full name and parents name, this image will be deleted as soon as the request is accepted/rejected ): </label>
+            <label >Identity document (To verify your Identity we require an idenitity document that shows your full name and parents name, this image will be deleted as soon as the request is accepted/rejected ): </label>
             <FileUploadBox
               control={control}
               name={"identityDocument"}

@@ -12,7 +12,7 @@ class SupaBaseUserAPI {
     if (!supabaseUrl || !supabaseKey) {
       throw new Error('Missing Supabase environment variables. Please check your .env configuration.');
     }
-    console.log(supabaseKey);
+    
     this.supabase = createClient(supabaseUrl, supabaseKey);
   }
 
@@ -25,13 +25,13 @@ class SupaBaseUserAPI {
       .from('user_details')
       .select('id,first_name,last_name,avatar,gender,dob');
 
-      console.log(user_details);
-      console.log(error);
+      
+      
 
     if (!error) {
       return user_details;
     } else {
-      console.log("Could not fetch user details");
+      
       return [];
     }
   }
@@ -45,13 +45,13 @@ class SupaBaseUserAPI {
       .from('user_details')
       .select('*');
 
-      console.log(user_details);
-      console.log(error);
+      
+      
 
     if (!error) {
       return user_details;
     } else {
-      console.log("Could not fetch users details");
+      
       return [];
     }
   }
@@ -62,7 +62,7 @@ class SupaBaseUserAPI {
       this.setupClient();
     }
 
-    console.log(requestData);
+    
     const {
       first_name,
       last_name,
@@ -107,8 +107,8 @@ class SupaBaseUserAPI {
       .select();
 
     if (error) {
-      console.log(error);
-      console.log("Could not create user request");
+      
+      
       return null;
     }
 
@@ -128,13 +128,13 @@ class SupaBaseUserAPI {
       .select('*')
       .eq('id', userId)
       .single();
-      console.log(user_details)
+      
 
     if (!error) {
       return user_details;
     } else {
-      console.log("Could not fetch user details");
-      console.log(error)
+      
+      
       return null;
     }
   }
@@ -152,7 +152,7 @@ class SupaBaseUserAPI {
     if (!error) {
       return relationships;
     } else {
-      console.log("Could not fetch user relationships");
+      
       return null;
     }
   }

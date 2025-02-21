@@ -13,7 +13,7 @@ export default function UserPage() {
   const cloudinaryApi = new CloudinaryUserAPI();
 
   async function onSubmit(data) {
-    console.log(data);
+    
 
     let requestdata = {
       "first_name": data.firstName ? data.firstName : null,

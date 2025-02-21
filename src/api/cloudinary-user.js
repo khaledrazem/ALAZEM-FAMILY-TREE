@@ -40,7 +40,6 @@ class CloudinaryUserAPI {
         body: fd,
       });
       const data = await response.json();
-      console.log(data);
       // File deleted successfully
      
     } catch (error) {
@@ -65,10 +64,10 @@ class CloudinaryUserAPI {
         body: fd,
       });
       const data = await response.json();
-      console.log(data);
+      
       // File uploaded successfully
       const img_url = data.url;
-      console.log(img_url);
+      
       return img_url;
     } catch (error) {
       console.error('Error uploading the file:', error);

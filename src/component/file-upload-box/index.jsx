@@ -34,12 +34,12 @@ const FileUploadBox = ({
     }, [selectedImages]);
     
     useEffect(() => {
-        console.log("INITIAL IMAGES", initialImages);
+        
         if (initialImages == null || initialImages.length == 0) {
             return;
         }
         setSelectedImages(initialImages);
-        console.log("INITIAL IMAGES", initialImages.length);
+        
     }, [initialImages]);
     const validateSelectedFile = (file) => {
         
@@ -124,8 +124,8 @@ return (
         if (files.every((file) => validateSelectedFile(file))) {
           const newImages = [...selectedImages, ...files];
           setSelectedImages(newImages);
-          console.log("SELECTED");
-          console.log(newImages);
+          
+          
 
           // Create a new FileList using DataTransfer
           const dataTransfer = new DataTransfer();

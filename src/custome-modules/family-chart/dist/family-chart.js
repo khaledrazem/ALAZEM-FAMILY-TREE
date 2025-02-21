@@ -2190,7 +2190,7 @@
     }
     
     function CardHtml(props) {
-      console.log(props.style)
+      
       const cardInner = props.style === 'default' ? cardInnerDefault 
       : props.style === 'imageCircleRect' ? cardInnerImageCircleRect
       : props.style === 'imageCircle' ? cardInnerImageCircle 
@@ -2332,7 +2332,7 @@
       }
     
       function cardCustom(d) {
-        console.log("CUSTOM")
+        
         return getCustomRect(d)
       }
     
@@ -3227,7 +3227,7 @@
     };
     
     CardHtml$1.prototype.setStyle = function(style) {
-        console.log("STYLE")
+        
       this.style = style;
       return this
     };

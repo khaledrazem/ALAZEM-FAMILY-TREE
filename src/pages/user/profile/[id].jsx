@@ -16,13 +16,13 @@ export default function UserPage() {
 
   useEffect(() => {
     async function fetchData() {
-      console.log(userID)
+      
       if (userID) {
         try {
           await getUserDetails();
           // Only fetch related data after user details are loaded
-          console.log(userDetails)
-          console.log("USERDCEITAL")
+          
+          
        
         } catch (error) {
           console.error('Error fetching user data:', error);
@@ -83,7 +83,7 @@ export default function UserPage() {
   async function getUserDetails() {
     let usersData = await supabaseApi.getUserDetails(userID);
     setUserDetails( formatData(usersData));
-    console.log(formatData(usersData))
+    
 
   }
 
@@ -149,13 +149,13 @@ export default function UserPage() {
           for (const child of userDetails.rels.children) {
             // Await the result of the asynchronous API call
             let user = await supabaseApi.getUserDetails(child);
-            console.log(user)
+            
             // Format the user data and push it to the usersData array
             usersData.push(formatData(user));
           }
         }
-        console.log("CJIL:DERE1")
-        console.log(usersData)
+        
+        
     setChildren( usersData);
   }
 
@@ -260,8 +260,6 @@ export default function UserPage() {
                 <div className={styles.relatives}>
                   {children.map((child) => (
                     <span key={child.id} className={styles.relative}>
-                      {console.log("SADASD")}
-                      {console.log(child)}
                       {child.data.firstName} {child.data.lastName}
                     </span>
                   ))}
