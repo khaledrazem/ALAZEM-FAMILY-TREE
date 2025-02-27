@@ -30,26 +30,29 @@
     var d3 = typeof window === "object" && !!window.d3 ? window.d3 : _d3__namespace;
     
     function sortChildrenWithSpouses(data) {
-      data.forEach(datum => {
-        if (!datum.rels.children) return
-        const spouses = datum.rels.spouses || [];
-        datum.rels.children.sort((a, b) => {
-          const a_d = data.find(d => d.id === a),
-            b_d = data.find(d => d.id === b),
-            a_p2 = a_d? otherParent(a_d, datum, data) || {} :{},
-            b_p2 = b_d? otherParent(b_d, datum, data) || {}:{},
-            a_i = spouses.indexOf(a_p2.id),
-            b_i = spouses.indexOf(b_p2.id);
-    
-          if (datum.data.gender === "M") return a_i - b_i
-          else return b_i - a_i
-        });
-      });
-    }
-    
-    function otherParent(d, p1, data) {
-      return data.find(d0 => (d0.id !== p1.id) && ((d0.id === d.rels.mother) || (d0.id === d.rels.father)))
-    }
+      for (const datum of data.values()) {
+          if (!datum.rels.children) continue;
+  
+          const spouses = datum.rels.spouses || [];
+          datum.rels.children.sort((a, b) => {
+              const a_d = data.get(a),
+                    b_d = data.get(b),
+                    a_p2 = a_d ? otherParent(a_d, datum, data) || {} : {},
+                    b_p2 = b_d ? otherParent(b_d, datum, data) || {} : {},
+                    a_i = spouses.indexOf(a_p2.id),
+                    b_i = spouses.indexOf(b_p2.id);
+  
+              return datum.data.gender === "M" ? a_i - b_i : b_i - a_i;
+          });
+      }
+  }
+  
+  function otherParent(d, p1, data) {
+      return data.get(d.rels.mother) === p1 ? data.get(d.rels.father) :
+             data.get(d.rels.father) === p1 ? data.get(d.rels.mother) :
+             null;
+  }
+  
     
     function calculateEnterAndExitPositions(d, entering, exiting) {
       d.exiting = exiting;
@@ -440,76 +443,94 @@
     
     function manualZoom({amount, svg, transition_time=500}) {
       const zoom = svg.__zoomObj;
-      d3.select(svg).transition().duration(transition_time || 0).delay(transition_time ? 100 : 0)  // delay 100 because of weird error of undefined something in d3 zoom
+      d3.select(svg).transition().duration(transition_time || 0).delay(transition_time ? 200 : 0)  // delay 100 because of weird error of undefined something in d3 zoom
         .call(zoom.scaleBy, amount);
     }
     
     function isAllRelativeDisplayed(d, data) {
-      if (!d?.data) return [];
       const r = d.data.rels,
         all_rels = [r.father, r.mother, ...(r.spouses || []), ...(r.children || [])].filter(v => v);
       return all_rels.every(rel_id => data.some(d => d?.data?.id === rel_id))
     }
     
     function CalculateTree({data, main_id=null, node_separation=250, level_separation=150, single_parent_empty_card=true, is_horizontal=false}) {
-      if (!data || !data.length) return {data: [], data_stash: [], dim: {width: 0, height: 0}, main_id: null}
+      if (!data || !data.size) return {data: [], data_stash: new Map(), dim: {width: 0, height: 0}, main_id: null};
+  console.log(1)
       if (is_horizontal) [node_separation, level_separation] = [level_separation, node_separation];
+  
       const data_stash = single_parent_empty_card ? createRelsToAdd(data) : data;
       sortChildrenWithSpouses(data_stash);
-      const main = (main_id !== null && data_stash.find(d => d.id === main_id)) || data_stash[0];
+  
+      const main = (main_id !== null && data_stash.has(main_id)) ? data_stash.get(main_id) : data_stash.values().next().value;
       const tree_children = calculateTreePositions(main, 'children', false);
       const tree_parents = calculateTreePositions(main, 'parents', true);
-    
-      data_stash.forEach(d => d.main = d === main);
+      console.log(2)
+
+      for (const d of data_stash.values()) d.main = d.id === main.id;
+
       levelOutEachSide(tree_parents, tree_children);
       const tree = mergeSides(tree_parents, tree_children);
-      setupChildrenAndParents({tree});
+      console.log(3)
+
+      //setupChildrenAndParents({tree});
+      console.log(4)
+
       setupSpouses({tree, node_separation});
+      console.log(5)
+
       setupProgenyParentsPos({tree});
+      console.log(6)
+
       nodePositioning({tree});
-      tree.forEach(d => d.all_rels_displayed = isAllRelativeDisplayed(d, tree));
-    
+      console.log(7)
+
+      for (const d of tree) d.all_rels_displayed = isAllRelativeDisplayed(d, tree);
+      console.log(7.5)
+
       const dim = calculateTreeDim(tree, node_separation, level_separation);
-    
-      return {data: tree, data_stash, dim, main_id: main.id, is_horizontal}
-    
+      console.log(8)
+
+      return {data: tree, data_stash, dim, main_id: main.id, is_horizontal};
+  
       function calculateTreePositions(datum, rt, is_ancestry) {
-        const hierarchyGetter = rt === "children" ? hierarchyGetterChildren : hierarchyGetterParents,
-          d3_tree = d3.tree().nodeSize([node_separation, level_separation]).separation(separation),
-          root = d3.hierarchy(datum, hierarchyGetter);
-        d3_tree(root);
-        return root.descendants()
-    
-        function separation(a, b) {
-          let offset = 1;
-          if (!is_ancestry) {
-            if (!sameParent(a, b)) offset+=.25;
-            if (someSpouses(a,b)) offset+=offsetOnPartners(a,b);
-            if (sameParent(a, b) && !sameBothParents(a,b)) offset+=.125;
+          const hierarchyGetter = rt === "children" ? hierarchyGetterChildren : hierarchyGetterParents;
+          const d3_tree = d3.tree().nodeSize([node_separation, level_separation]).separation(separation);
+          const root = d3.hierarchy(datum, hierarchyGetter);
+
+          d3_tree(root);
+          return root.descendants();
+  
+          function separation(a, b) {
+              let offset = 1;
+              if (!is_ancestry) {
+                  if (!sameParent(a, b)) offset += 0.25;
+                  if (someSpouses(a, b)) offset += offsetOnPartners(a, b);
+                  if (sameParent(a, b) && !sameBothParents(a, b)) offset += 0.125;
+              }
+              return offset;
           }
-          return offset
-        }
-        function sameParent(a, b) {return a.parent == b.parent}
-        function sameBothParents(a, b) {return (a.data?.rels?.father === b.data?.rels?.father) && (a.data?.rels?.mother === b.data?.rels?.mother)}
-        function hasSpouses(d) {return d.data?.rels?.spouses && d.data?.rels?.spouses.length > 0}
-        function someSpouses(a, b) {return hasSpouses(a) || hasSpouses(b)}
-    
-        function hierarchyGetterChildren(d) {
-          if (!d) return [];
-          return [...(d.rels.children || [])].map(id => data_stash.find(d => d.id === id))
-        }
-    
-        function hierarchyGetterParents(d) {
-          return [d.rels.father, d.rels.mother]
-            .filter(d => d).map(id => data_stash.find(d => d.id === id))
-        }
-    
-        function offsetOnPartners(a,b) {
-          if (!a?.data || !b?.data) return 0;
-          return ((a.data.rels.spouses || []).length + (b.data.rels.spouses || []).length)*.5
-        }
+  
+          function sameParent(a, b) { return a.parent === b.parent; }
+          function sameBothParents(a, b) { 
+              return (a.data?.rels?.father === b.data?.rels?.father) && (a.data?.rels?.mother === b.data?.rels?.mother); 
+          }
+          function hasSpouses(d) { return d.data?.rels?.spouses && d.data?.rels?.spouses.length > 0; }
+          function someSpouses(a, b) { return hasSpouses(a) || hasSpouses(b); }
+  
+          function hierarchyGetterChildren(d) {
+              return d.rels.children ? d.rels.children.map(id => data_stash.get(id)).filter(Boolean) : [];
+          }
+  
+          function hierarchyGetterParents(d) {
+              return [d.rels.father, d.rels.mother].filter(id => id && data_stash.has(id)).map(id => data_stash.get(id));
+          }
+  
+          function offsetOnPartners(a, b) {
+              return ((a.data?.rels?.spouses?.length || 0) + (b.data?.rels?.spouses?.length || 0)) * 0.5;
+          }
       }
-    
+  
+      
       function levelOutEachSide(parents, children) {
         const mid_diff = (parents[0].x - children[0].x) / 2;
         parents.forEach(d => d.x-=mid_diff);
@@ -531,68 +552,63 @@
         });
       }
     
+
       function setupSpouses({tree, node_separation}) {
-        for (let i = tree.length; i--;) {
-          const d = tree[i];
-          if (!d.is_ancestry && d.data?.rels?.spouses && d.data?.rels?.spouses.length > 0){
-            const side = d.data.data.gender === "M" ? -1 : 1;  // female on right
-            d.x += d.data.rels.spouses.length/2*node_separation*side;
-            d.data.rels.spouses.forEach((sp_id, i) => {
-              const spouse = {data: data_stash.find(d0 => d0.id === sp_id), added: true};
-    
-              spouse.x = d.x-(node_separation*(i+1))*side;
-              spouse.y = d.y;
-              spouse.sx = i > 0 ? spouse.x : spouse.x + (node_separation/2)*side;
-              spouse.sy = i > 0 ? spouse.y : spouse.y + (node_separation/2)*side;
-              spouse.depth = d.depth;
-              spouse.spouse = d;
-              if (!d.spouses) d.spouses = [];
-              d.spouses.push(spouse);
-              tree.push(spouse);
-            });
+          for (let i = tree.length - 1; i >= 0; i--) {
+              const d = tree[i];
+              if (!d.added && !d.is_ancestry && d.data.rels.spouses?.length > 0) {
+                  const side = d.data.gender === "M" ? -1 : 1;
+                  d.x += d.data.rels.spouses.length / 2 * node_separation * side;
+                  for (const sp_id of d.data.rels.spouses) {
+                    if (!data_stash.has(sp_id)) {
+                     
+                    tree[i].data.rels.spouses = tree[i].data.rels.spouses.filter(spouse => spouse!=sp_id)
+
+                    if (tree[i].data.rels.children) {
+                      for (const child of tree[i].data.rels.children) {
+                          // Locate the child node in the tree
+                          const childIndex = tree.findIndex(node => node.data.id === child);
+
+                          if (childIndex !== -1) { // Ensure the child exists in the tree
+                              if (tree[childIndex].data.rels.mother === sp_id) {
+                                  tree[childIndex].data.rels.mother = null; // Update the mother field in the tree
+                       
+                              }
+                              if (tree[childIndex].data.rels.father === sp_id) {
+                                  tree[childIndex].data.rels.father = null; // Update the father field in the tree
+                                 
+                              }
+                          }
+                      }
+                  }
+                  
+                  
+                    continue
+                    }
+                      const spouse = {data: data_stash.get(sp_id), added: true};
+                      spouse.x = d.x - node_separation * side;
+                      spouse.y = d.y;
+                      spouse.sx = spouse.x + (node_separation / 2) * side;
+                      spouse.sy = spouse.y;
+                      spouse.depth = d.depth;
+                      spouse.spouse = d;
+                      d.spouses = d.spouses || [];
+                      d.spouses.push(spouse);
+
+                      const existing_spouse = tree.findIndex(item => item.data.id == sp_id);
+                      if (existing_spouse==-1){
+                        tree.push(spouse);
+
+
+                      } else {
+                        tree[existing_spouse] = spouse
+
+                      }
+                  }
+              }
           }
-          if (d.parents && d.parents.length === 2) {
-            const p1 = d.parents[0],
-              p2 = d.parents[1],
-              midd = p1.x - (p1.x - p2.x)/2,
-              x = (d,sp) => midd + (node_separation/2)*(d.x < sp.x ? 1 : -1);
-    
-            p2.x = x(p1, p2); p1.x = x(p2, p1);
-          }
-        }
       }
-    
-      function setupProgenyParentsPos({tree}) {
-        tree.forEach(d => {
-          if (d.is_ancestry) return
-          if (d.depth === 0) return
-          if (d.added) return
-          if (!d?.data) return null;
-          const m = findDatum(d.data.rels.mother);
-          const f = findDatum(d.data.rels.father);
-          if (m && f) {
-            if (!m.added && !f.added) console.error('no added spouse', m, f);
-            const added_spouse = m.added ? m : f;
-            setupParentPos(d, added_spouse);
-          } else if (m || f) {
-            const parent = m || f;
-            parent.sx = parent.x;
-            parent.sy = parent.y;
-            setupParentPos(d, parent);
-          }
-    
-          function setupParentPos(d, p) {
-            d.psx = !is_horizontal ? p.sx : p.y;
-            d.psy = !is_horizontal ? p.y : p.sx;
-          }
-        });
-    
-        function findDatum(id) {
-          if (!id) return null
-          return tree.find(d => d?.data?.id === id)
-        }
-      }
-    
+
       function setupChildrenAndParents({tree}) {
         tree.forEach(d0 => {
           delete d0.children;
@@ -610,55 +626,87 @@
         });
       }
     
-      function calculateTreeDim(tree, node_separation, level_separation) {
-        if (is_horizontal) [node_separation, level_separation] = [level_separation, node_separation];
-        const w_extent = d3.extent(tree, d => d.x);
-        const h_extent = d3.extent(tree, d => d.y);
-        return {
-          width: w_extent[1] - w_extent[0]+node_separation, height: h_extent[1] - h_extent[0]+level_separation, x_off: -w_extent[0]+node_separation/2, y_off: -h_extent[0]+level_separation/2
-        }
-      }
-    
-      function createRelsToAdd(data) {
-        const to_add_spouses = [];
-        for (let i = 0; i < data.length; i++) {
-          const d = data[i];
-          if (d.rels.children && d.rels.children.length > 0) {
-            if (!d.rels.spouses) d.rels.spouses = [];
-            const is_father = d.data.gender === "M";
-            let spouse;
-    
-            d.rels.children.forEach(d0 => {
-              const child = data.find(d1 => d1.id === d0);
-              if (child.rels[is_father ? 'father' : 'mother'] !== d.id) return
-              if (child.rels[!is_father ? 'father' : 'mother']) return
-              if (!spouse) {
-                spouse = createToAddSpouse(d);
-                d.rels.spouses.push(spouse.id);
+  
+      function setupProgenyParentsPos({tree}) {
+          for (const d of tree) {
+              if (d.is_ancestry || d.depth === 0 || d.added) continue;
+            
+              const m = findDatum(d.data.rels.mother);
+              const f = findDatum(d.data.rels.father);
+              if (m && f) {
+                  const added_spouse = m.added ? m : f;
+                  setupParentPos(d, added_spouse);
+
+              } else if (m || f) {
+                  const parent = m || f;
+                  parent.sx = parent.x;
+                  parent.sy = parent.y;
+                  setupParentPos(d, parent);
               }
-              spouse.rels.children.push(child.id);
-              child.rels[!is_father ? 'father' : 'mother'] = spouse.id;
-            });
+
           }
-        }
-        to_add_spouses.forEach(d => data.push(d));
-        return data
-    
-        function createToAddSpouse(d) {
-          const spouse = createNewPerson({
-            data: {gender: d.data.gender === "M" ? "F" : "M"},
-            rels: {spouses: [d.id], children: []}
-          });
-          spouse.to_add = true;
-          to_add_spouses.push(spouse);
-          return spouse
-        }
+  
+          function setupParentPos(d, p) {
+              d.psx = !is_horizontal ? p.sx : p.y;
+              d.psy = !is_horizontal ? p.y : p.sx;
+          }
+          function findDatum(id) {
+            return tree.find(d => d?.data?.id === id)
+          }
       }
-    
-    }
+  
+      function createRelsToAdd(data) {
+          const to_add_spouses = new Map();
+          for (const d of data.values()) {
+              if (d.rels.children?.length) {
+                  if (!d.rels.spouses) d.rels.spouses = [];
+                  const is_father = d.data.gender === "M";
+                  let spouse;
+                  for (const childId of d.rels.children) {
+                      const child = data.get(childId);
+                      if (child.rels[is_father ? 'father' : 'mother'] !== d.id) continue;
+                      if (child.rels[!is_father ? 'father' : 'mother']) continue;
+                      if (!spouse) {
+                          spouse = createToAddSpouse(d);
+                          d.rels.spouses.push(spouse.id);
+                      }
+                      spouse.rels.children.push(child.id);
+                      child.rels[!is_father ? 'father' : 'mother'] = spouse.id;
+                  }
+              }
+          }
+          for (const spouse of to_add_spouses.values()) data.set(spouse.id, spouse);
+          return data;
+  
+          function createToAddSpouse(d) {
+              const id = `sp-${Math.random().toString(36).substr(2, 9)}`; // Generate unique ID
+              const spouse = {
+                  id,
+                  data: { gender: d.data.gender === "M" ? "F" : "M" },
+                  rels: { spouses: [d.id], children: [] },
+                  to_add: true
+              };
+              to_add_spouses.set(id, spouse);
+              return spouse;
+          }
+      }
+  
+      function calculateTreeDim(tree, node_separation, level_separation) {
+          if (is_horizontal) [node_separation, level_separation] = [level_separation, node_separation];
+          const w_extent = d3.extent(tree, d => d.x);
+          const h_extent = d3.extent(tree, d => d.y);
+          return {
+              width: w_extent[1] - w_extent[0] + node_separation,
+              height: h_extent[1] - h_extent[0] + level_separation,
+              x_off: -w_extent[0] + node_separation / 2,
+              y_off: -h_extent[0] + level_separation / 2
+          };
+      }
+  }
+  
     
     function createStore(initial_state) {
-      let onUpdate;
+      let onUpdate=null;
       const state = initial_state;
       state.main_id_history = []; 
     
@@ -666,8 +714,14 @@
         state,
         updateTree: (props) => {
           state.tree = calcTree();
+          console.log(1231231312)
+          console.log(onUpdate)
+
           if (!state.main_id) updateMainId(state.tree.main_id);
+          console.log(321312321)
           if (onUpdate) onUpdate(props);
+          console.log(4444444444)
+
         },
         updateData: data => state.data = data,
         updateMainId,
@@ -716,6 +770,7 @@
     
       function updateMainId(id) {
         if (id === state.main_id) return
+        if (!store.getData().has(id)) return
         state.main_id_history = state.main_id_history.filter(d => d !== id).slice(-10);
         state.main_id_history.push(id);
         state.main_id = id;
@@ -796,7 +851,8 @@
     
         d.children.forEach((child, i) => {
           const other_parent = otherParent(child, d, tree) || d;
-          const sx = other_parent.sx;
+          const sx = other_parent.sx || other_parent.x;
+
     
           const parent_pos = !is_horizontal ? {x: sx, y: d.y} : {x: d.x, y: sx};
           links.push({
@@ -1012,7 +1068,8 @@
       const line = d3.line().curve(d3.curveMonotoneY),
         lineCurve = d3.line().curve(d3.curveBasis),
         path_data = is_ ? d._d() : d.d;
-    
+     
+        
       if (!d.curve) return line(path_data)
       else if (d.curve === true) return lineCurve(path_data)
     }
@@ -1022,6 +1079,7 @@
         createLinks({d, tree:tree.data, is_horizontal: tree.is_horizontal}).forEach(l => acc[l.id] = l);
         return acc
       }, {});
+    
       const links_data = Object.values(links_data_dct);
       const link = d3.select(svg).select(".links_view").selectAll("path.link").data(links_data, d => d.id);
       const link_exit = link.exit();
@@ -1033,17 +1091,21 @@
       link_update.each(linkUpdate);
     
       function linkEnter(d) {
+        
+        
         d3.select(this).attr("fill", "none").attr("stroke", "#fff").attr("stroke-width", 1).style("opacity", 0)
           .attr("d", createPath(d, true));
       }
     
       function linkUpdate(d) {
+   
         const path = d3.select(this);
         const delay = props.initial ? calculateDelay(tree, d, props.transition_time) : 0;
         path.transition('path').duration(props.transition_time).delay(delay).attr("d", createPath(d)).style("opacity", 1);
       }
     
       function linkExit(d) {
+  
         const path = d3.select(this);
         path.transition('op').duration(800).style("opacity", 0);
         path.transition('path').duration(props.transition_time).attr("d", createPath(d, true))
@@ -1077,12 +1139,14 @@
       function cardUpdateNoEnter(d) {}
     
       function cardUpdate(d) {
+
         Card.call(this, d);
         const delay = props.initial ? calculateDelay(tree, d, props.transition_time) : 0;
         d3.select(this).transition().duration(props.transition_time).delay(delay).attr("transform", `translate(${d.x}, ${d.y})`).style("opacity", 1);
       }
     
       function cardExit(d) {
+
         const g = d3.select(this);
         g.transition().duration(props.transition_time).style("opacity", 0).attr("transform", `translate(${d._x}, ${d._y})`)
           .on("end", () => g.remove());
@@ -1116,6 +1180,7 @@
       function cardUpdateNoEnter(d) {}
     
       function cardUpdate(d) {
+
         Card.call(this, d);
         const delay = props.initial ? calculateDelay(tree, d, props.transition_time) : 0;
         d3.select(this).transition().duration(props.transition_time).delay(delay).style("transform", `translate(${d.x}px, ${d.y}px)`).style("opacity", 1);
@@ -1239,12 +1304,14 @@
       function cardUpdateNoEnter(d) {}
     
       function cardUpdate(d) {
+
         const card_element = d3.select(Card(d));
         const delay = props.initial ? calculateDelay(tree, d, props.transition_time) : 0;
         card_element.transition().duration(props.transition_time).delay(delay).style("transform", `translate(${d.x}px, ${d.y}px)`).style("opacity", 1);
       }
     
       function cardExit(d) {
+
         const card_element = d3.select(Card(d));
         const g = d3.select(this);
         card_element.transition().duration(props.transition_time).style("opacity", 0).style("transform", `translate(${d._x}px, ${d._y}px)`)
@@ -2873,7 +2940,7 @@
       return this
     };
     
-    function createChart(...args) { return new CreateChart(...args) }
+     function  createChart(...args) { return new CreateChart(...args) }
     
     function CreateChart(cont, data) {
       this.cont = null;
@@ -2896,7 +2963,7 @@
       return this
     }
     
-    CreateChart.prototype.init = function(cont, data) {
+    CreateChart.prototype.init =  function(cont, data) {
       this.cont = cont = setCont(cont);
       const getSvgView = () => cont.querySelector('svg .view');
       const getHtmlSvg = () => cont.querySelector('#htmlSvg');
@@ -2905,14 +2972,16 @@
       this.svg = f3.createSvg(cont, {onZoom: f3.htmlHandlers.onZoomSetup(getSvgView, getHtmlView)});
       f3.htmlHandlers.createHtmlSvg(cont);
     
+      const dataMap = new Map(data.map(d => [d.id, d]));
+
       this.store = f3.createStore({
-        data,
+        data: dataMap,
         node_separation: this.node_separation,
         level_separation: this.level_separation,
         single_parent_empty_card: this.single_parent_empty_card,
         is_horizontal: this.is_horizontal
       });
-    
+
       this.setCard(f3.CardSvg); // set default card
     
       this.store.setOnUpdate(props => {

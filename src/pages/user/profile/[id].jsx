@@ -119,21 +119,17 @@ export default function UserPage() {
   
 
   async function getParents() {
-    if (!userDetails?.rels?.parents || userDetails?.rels?.parents.length==0) {
-      return [];
+    let usersData = [];
+    if (userDetails?.rels?.father) {
+      let user = await supabaseApi.getUserDetails(userDetails.rels.father);
+      usersData.push(formatData(user));
     }
-      // Initializing an empty array to hold the formatted user data
-      let usersData = [];
+    if (userDetails?.rels?.mother) {
+      let user = await supabaseApi.getUserDetails(userDetails.rels.mother);
+      usersData.push(formatData(user));
+    }
   
-      if (userDetails.rels.parents) {
-        // Using a for...of loop to iterate over each sibling
-        for (const parent of userDetails.rels.parents) {
-          // Await the result of the asynchronous API call
-          let user = await supabaseApi.getUserDetails(parent);
-          // Format the user data and push it to the usersData array
-          usersData.push(formatData(user));
-        }
-      }
+    
     setParents(usersData);
   }
 

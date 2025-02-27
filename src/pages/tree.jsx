@@ -74,36 +74,44 @@ export default function FamilyTree() {
         router.push("/user/profile/" + id);
       }
 
-      function create(data) {
-        const f3Chart = f3.createChart('#FamilyChart', data)
+      
+       function create(data) {
+        
+        const f3Chart =  f3.createChart('#FamilyChart', data)
+
+        f3Chart
           .setTransitionTime(1000)
           .setCardXSpacing(450)
           .setCardYSpacing(450)
           .setOrientationVertical()
           .updateMainId(oldestUserId)
           .setSingleParentEmptyCard(false, {label: 'ADD'})
+
         const f3Card = f3Chart.setCard(f3.CardHtml)
           .setCardDisplay([["first name","last name"],["arabic name"],["birthday"]])
           .setCardDim({
           })
           .setStyle('custom')
           .setOnHoverPathToMain();
-      
+
         f3Card.setOnCardClick((e, d) => {
           toUserPage(d.data.id);
         });
-      
+        console.log("NEXT")
+
         f3Chart
           .updateTree({
             initial: true,
             method: 'fit'
           });
-        
+          console.log("NEXT2")
+
         // Store chart reference for cleanup
         chartRef.current = f3Chart;
       }
       
- 
+      console.log("CRETING");
+      console.log(usersData.length);
       create(usersData);
     };
 
