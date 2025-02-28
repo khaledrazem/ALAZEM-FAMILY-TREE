@@ -22,7 +22,7 @@ class SupaBaseUserAPI {
     }
 
     const { data: user_details, error } = await this.supabase
-      .from('user_details')
+      .from('user_details_duplicate')
       .select('id,first_name,last_name,avatar,gender,dob');
 
       
@@ -42,7 +42,7 @@ class SupaBaseUserAPI {
     }
 
     const { data: user_details, error } = await this.supabase
-      .from('user_details')
+      .from('user_details_duplicate')
       .select('*');
 
       
@@ -124,7 +124,7 @@ class SupaBaseUserAPI {
     }
 
     const { data: user_details, error } = await this.supabase
-      .from('user_details')
+      .from('user_details_duplicate')
       .select('*')
       .eq('id', userId)
       .single();

@@ -41,7 +41,7 @@ export default function FamilyTree() {
         return oldestUser.id;
       };
 
-      const oldestUserId = "6f7d2e96-e957-4208-944d-9f37d57e19c1";
+      const oldestUserId = getOldestUserId(usersData); //"6f7d2e96-e957-4208-944d-9f37d57e19c1";
       
       
       usersData = usersData.map((user) => {
@@ -78,6 +78,7 @@ export default function FamilyTree() {
        function create(data) {
         
         const f3Chart =  f3.createChart('#FamilyChart', data)
+        console.log("NEXT")
 
         f3Chart
           .setTransitionTime(1000)
@@ -86,6 +87,7 @@ export default function FamilyTree() {
           .setOrientationVertical()
           .updateMainId(oldestUserId)
           .setSingleParentEmptyCard(false, {label: 'ADD'})
+          console.log("NEXT1")
 
         const f3Card = f3Chart.setCard(f3.CardHtml)
           .setCardDisplay([["first name","last name"],["arabic name"],["birthday"]])
@@ -93,18 +95,19 @@ export default function FamilyTree() {
           })
           .setStyle('custom')
           .setOnHoverPathToMain();
+          console.log("NEXT2")
 
         f3Card.setOnCardClick((e, d) => {
           toUserPage(d.data.id);
         });
-        console.log("NEXT")
+        console.log("NEXT3")
 
         f3Chart
           .updateTree({
             initial: true,
             method: 'fit'
           });
-          console.log("NEXT2")
+          console.log("NEXT24")
 
         // Store chart reference for cleanup
         chartRef.current = f3Chart;

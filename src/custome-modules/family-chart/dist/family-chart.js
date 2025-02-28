@@ -716,13 +716,13 @@
           state.tree = calcTree();
           console.log(1231231312)
           console.log(onUpdate)
-
+      
           if (!state.main_id) updateMainId(state.tree.main_id);
           console.log(321312321)
           if (onUpdate) onUpdate(props);
           console.log(4444444444)
 
-        },
+      },
         updateData: data => state.data = data,
         updateMainId,
         getMainId: () => state.main_id,
@@ -851,7 +851,7 @@
     
         d.children.forEach((child, i) => {
           const other_parent = otherParent(child, d, tree) || d;
-          const sx = other_parent.sx || other_parent.x;
+          const sx = (other_parent.sx !== undefined && other_parent.sx !== null) ? other_parent.sx : other_parent.x;
 
     
           const parent_pos = !is_horizontal ? {x: sx, y: d.y} : {x: d.x, y: sx};
