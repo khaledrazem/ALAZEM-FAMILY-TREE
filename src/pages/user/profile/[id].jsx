@@ -280,7 +280,17 @@ export default function UserPage() {
       </div>
 
       <div className={styles.buttons}>
-        <button onClick={() => router.back()}>Back</button>
+      <button
+  onClick={() => {
+    router.push('/'); // Navigate to the desired route
+    setTimeout(() => {
+      window.location.reload(); // Force a full reload after navigation
+    }, 100); // Add a small delay to ensure navigation completes
+  }}
+>
+  Back
+</button>
+
         <button onClick={() => router.push(`/user/edit-request/${userID}`)}>
           Request change
         </button>
