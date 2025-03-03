@@ -1,12 +1,14 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import f3 from '../custome-modules/family-chart/dist/family-chart.js';
 import { useRouter } from 'next/router'
 import SupaBaseUserAPI from '@/api/supabase-user.js';
+import styles from '../styles/tree.module.css';
 
 export default function FamilyTree() {
   const containerRef = useRef();
   const chartRef = useRef();
   const router = useRouter();
+  const [loading, setLoading] = useState(false);
 
   const supabaseApi = new SupaBaseUserAPI();
 
@@ -19,13 +21,17 @@ export default function FamilyTree() {
         chartRef.current = null;
       }
     };
+// Initialize chart
+const initializeChart = async () => {
+  setLoading(true); // Start loading
+  cleanup(); // Clean up any existing chart
 
-    // Initialize chart
-    const initializeChart = async () => {
-      cleanup(); // Clean up any existing chart
+  if (!containerRef.current) {
+    setLoading(false);
+    return;
+  }
 
-      if (!containerRef.current) return;
-
+  try {
 
 
       let usersData = await supabaseApi.getAllUsers();
@@ -87,6 +93,7 @@ export default function FamilyTree() {
           .setOrientationVertical()
           .updateMainId(oldestUserId)
           .setSingleParentEmptyCard(false, {label: 'ADD'})
+        
           console.log("NEXT1")
 
         const f3Card = f3Chart.setCard(f3.CardHtml)
@@ -105,17 +112,27 @@ export default function FamilyTree() {
         f3Chart
           .updateTree({
             initial: true,
-            method: 'fit'
+            method: 'fit',
+            onComplete: onCompleteFunction
           });
           console.log("NEXT24")
 
         // Store chart reference for cleanup
         chartRef.current = f3Chart;
       }
+
+      function onCompleteFunction(){
+        console.log("ONCVO<P{LEte")
+        setLoading( false)
+      }
       
       console.log("CRETING");
       console.log(usersData.length);
       create(usersData);
+      } catch (error) {
+        console.error("Error initializing chart:", error);
+        setLoading(false); // Ensure loading is turned off even if there's an error
+      }
     };
 
     // Initialize chart when component mounts or route changes
@@ -131,5 +148,13 @@ export default function FamilyTree() {
     };
   }, [router]); // Re-run effect if router changes
 
-  return <div className="f3 f3-cont" id="FamilyChart" ref={containerRef}></div>;
+  return (
+    <div className="f3 f3-cont" id="FamilyChart" ref={containerRef}>
+      {loading && (
+        <div className={styles.loading}>
+          {/* The loading spinner is created by CSS ::after pseudo-element */}
+        </div>
+      )}
+    </div>
+  );
 }
