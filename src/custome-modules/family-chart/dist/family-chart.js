@@ -92,7 +92,7 @@ import Worker from '@/app.worker';
         rels_not_to_main = [];
     
       for (let i = 0; i < r_ids.length; i++) {
-        const line = findPersonLineToMain(data_stash.find(d => d.id === r_ids[i]), [datum]);
+        const line = findPersonLineToMain(data_stash.get(r_ids[i]), [datum]);
         if (!line) {rels_not_to_main.push(r_ids[i]); break;}
       }
       return rels_not_to_main.length === 0;
@@ -122,14 +122,18 @@ import Worker from '@/app.worker';
           }
     
           function checkRels(d_id) {
-            const person = data_stash.find(d => d.id === d_id);
+            const person = data_stash.get(d_id);
             checkIfAnyRelIsMain(person, history);
           }
         }
       }
-      function isM(d0) {return typeof d0 === 'object' ? d0.id === data_stash[0].id : d0 === data_stash[0].id}  // todo: make main more exact
+      
+      function isM(d0) {
+        const firstElement = data_stash.entries().next().value[0];
+
+        return typeof d0 === 'object' ? d0.id === firstElement : d0 === firstElement}  // todo: make main more exact
     }
-    
+
     function createForm({datum, store, fields, postSubmit, addRelative, deletePerson, onCancel, editFirst, is_new_rel}) {
       const form_creator = {
         fields: [],
@@ -220,11 +224,11 @@ import Worker from '@/app.worker';
     }
     
     function cleanupDataJson(data_json) {
-      let data_no_to_add = JSON.parse(data_json);
-      data_no_to_add.forEach(d => d.to_add ? removeToAdd(d, data_no_to_add) : d);
-      data_no_to_add.forEach(d => delete d.main);
-      data_no_to_add.forEach(d => delete d.hide_rels);
-      return JSON.stringify(data_no_to_add, null, 2)
+      let data_no_to_add = data_json;
+        data_no_to_add.forEach(d => d.to_add ? removeToAdd(d, data_no_to_add) : d);
+        data_no_to_add.forEach(d => delete d.main);
+        data_no_to_add.forEach(d => delete d.hide_rels);
+      return data_no_to_add
     }
 
     function removeToAddFromData(data) {
@@ -507,11 +511,11 @@ import Worker from '@/app.worker';
     
     
       function getMainDatum() {
-        return state.data.find(d => d.id === state.main_id)
+        return state.data.get(state.main_id)
       }
     
       function getDatum(id) {
-        return state.data.find(d => d.id === id)
+        return state.data.get(id)
       }
     
       function getTreeMainDatum() {
@@ -572,77 +576,85 @@ import Worker from '@/app.worker';
     function createLinks({d, tree, is_horizontal=false}) {
       const links = [];
     
-      if (d?.data?.rels.spouses && d?.data?.rels.spouses.length > 0) handleSpouse({d});
-      handleAncestrySide({d});
-      handleProgenySide({d});
-    
+      if (d?.data?.rels.spouses && d?.data?.rels.spouses.length > 0) handleSpouse({d, tree, is_horizontal});
+      handleAncestrySide({d, tree, is_horizontal});
+      handleProgenySide({d, tree, is_horizontal});
       return links;
     
-      function handleAncestrySide({d}) {
+      function handleAncestrySide({d, tree, is_horizontal}) {
         if (!d.parents) return
         const p1 = d.parents[0];
         const p2 = d.parents[1] || p1;
     
-        const p = {x: getMid(p1, p2, 'x'), y: getMid(p1, p2, 'y')};
-    
-        links.push({
-          d: Link(d, p),
-          _d: () => {
-            const _d = {x: d.x, y: d.y},
-              _p = {x: d.x, y: d.y};
-            return Link(_d, _p)
-          },
-          curve: true, 
-          id: linkId(d, p1, p2), 
-          depth: d.depth+1, 
-          is_ancestry: true,
-          source: d,
-          target: [p1, p2]
-        });
+            const p = {x: getMid(p1, p2, 'x'), y: getMid(p1, p2, 'y')};
+        
+            
+              const link = {
+                d: Link(d, p),
+                _d: () => {
+                  const _d = {x: d.x, y: d.y},
+                    _p = {x: d.x, y: d.y};
+                  return Link(_d, _p)
+                },
+                curve: true,
+                id: linkId(d, p1, p2),
+                depth: d.depth+1,
+                is_ancestry: true,
+                source: d,
+                target: [p1, p2]
+              };
+            
+            links.push(link);
       }
-    
-    
-      function handleProgenySide({d}) {
-        if (!d.children || d.children.length === 0) return
+      
+      
+        function handleProgenySide({d, tree, is_horizontal}) {
+          if (!d.children || d.children.length === 0) return
     
         d.children.forEach((child, i) => {
           const other_parent = otherParent(child, d, tree) || d;
           const sx = (other_parent.sx !== undefined && other_parent.sx !== null) ? other_parent.sx : other_parent.x;
 
+
+      const parent_pos = !is_horizontal ? {x: sx, y: d.y} : {x: d.x, y: sx};
+      
+        const link = {
+          d: Link(child, parent_pos),
+          _d: () => Link(parent_pos, {x: _or(parent_pos, 'x'), y: _or(parent_pos, 'y')}),
+          curve: true,
+          id: linkId(child, d, other_parent),
+          depth: d.depth+1,
+          is_ancestry: false,
+          source: [d, other_parent],
+          target: child
+        };
+      
+      links.push(link);
+    });
+  }
     
-          const parent_pos = !is_horizontal ? {x: sx, y: d.y} : {x: d.x, y: sx};
-          links.push({
-            d: Link(child, parent_pos),
-            _d: () => Link(parent_pos, {x: _or(parent_pos, 'x'), y: _or(parent_pos, 'y')}),
-            curve: true,
-            id: linkId(child, d, other_parent),
-            depth: d.depth+1,
-            is_ancestry: false,
-            source: [d, other_parent],
-            target: child
-          });
-        });
-      }
     
-    
-      function handleSpouse({d}) {
+      function handleSpouse({d, tree}) {
         d.data.rels.spouses.forEach(sp_id => {
           const spouse = getRel(d, tree, d0 => d0?.data?.id === sp_id);
           if (!spouse || d.spouse) return
-          links.push({
+          
+          const link = {
             d: [[d.x, d.y], [spouse.x, spouse.y]],
             _d: () => [
               d.is_ancestry ? [_or(d, 'x')-.0001, _or(d, 'y')] : [d.x, d.y], // add -.0001 to line to have some length if d.x === spouse.x
               d.is_ancestry ? [_or(spouse, 'x'), _or(spouse, 'y')] : [d.x-.0001, d.y]
             ],
-            curve: false, 
-            id: linkId(d, spouse), 
-            depth: d.depth, 
-            spouse: true, 
-            is_ancestry: spouse.is_ancestry, 
-            source: d, 
+            curve: false,
+            id: linkId(d, spouse),
+            depth: d.depth,
+            spouse: true,
+            is_ancestry: spouse.is_ancestry,
+            source: d,
             target: spouse
-          });
+          };
+        
+          links.push(link);
         });
       }
     
@@ -831,11 +843,16 @@ import Worker from '@/app.worker';
     }
     
     function updateLinks(svg, tree, props={}) {
+      // const existingLinks = d3.select(svg).select(".links_view").selectAll("path.link").data().reduce((acc, d) => {
+      //   acc[d.id] = d;
+      //   return acc;
+      // }, {});
+
       const links_data_dct = tree.data.reduce((acc, d) => {
-        createLinks({d, tree:tree.data, is_horizontal: tree.is_horizontal}).forEach(l => acc[l.id] = l);
-        return acc
+        createLinks({d, tree: tree.data, is_horizontal: tree.is_horizontal}).forEach(l => acc[l.id] = l);
+        return acc;
       }, {});
-    
+
       const links_data = Object.values(links_data_dct);
       const link = d3.select(svg).select(".links_view").selectAll("path.link").data(links_data, d => d.id);
       const link_exit = link.exit();
@@ -855,11 +872,10 @@ import Worker from '@/app.worker';
     
       function linkUpdate(d) {
    
-        const path = d3.select(this);
-        const delay = props.initial ? calculateDelay(tree, d, props.transition_time) : 0;
-        path.transition('path').duration(props.transition_time).delay(delay).attr("d", createPath(d)).style("opacity", 1);
-      }
-    
+        
+             const path = d3.select(this);
+             path.transition('path').duration(props.transition_time).attr("d", createPath(d)).style("opacity", 1);
+           }
       function linkExit(d) {
   
         const path = d3.select(this);
@@ -870,8 +886,8 @@ import Worker from '@/app.worker';
     
     }
     
-    function updateCards(svg, tree, Card, props={}) {
-      const card = d3.select(svg).select(".cards_view").selectAll("g.card_cont").data(tree.data, d => d.data.id),
+      function updateCards(svg, visibleNodes, Card, props={}, tree) {
+        const card = d3.select(svg).select(".cards_view").selectAll("g.card_cont").data(visibleNodes, d => d.data.id || d.id),
         card_exit = card.exit(),
         card_enter = card.enter().append("g").attr("class", "card_cont"),
         card_update = card_enter.merge(card);
@@ -888,7 +904,7 @@ import Worker from '@/app.worker';
         d3.select(this)
           .attr("transform", `translate(${d._x}, ${d._y})`)
           .style("opacity", 0);
-    
+
         Card.call(this, d);
       }
     
@@ -897,8 +913,7 @@ import Worker from '@/app.worker';
       function cardUpdate(d) {
 
         Card.call(this, d);
-        const delay = props.initial ? calculateDelay(tree, d, props.transition_time) : 0;
-        d3.select(this).transition().duration(props.transition_time).delay(delay).attr("transform", `translate(${d.x}, ${d.y})`).style("opacity", 1);
+        d3.select(this).transition().duration(props.transition_time).attr("transform", `translate(${d.x}, ${d.y})`).style("opacity", 1);
       }
     
       function cardExit(d) {
@@ -909,8 +924,8 @@ import Worker from '@/app.worker';
       }
     }
     
-    function updateCardsHtml(div, tree, Card, props={}) {
-      const card = d3.select(div).select(".cards_view").selectAll("div.card_cont").data(tree.data, d => d.data?.id),
+      function updateCardsHtml(div, visibleNodes, Card, props={}, tree) {
+      const card = d3.select(div).select(".cards_view").selectAll("div.card_cont").data(visibleNodes, d => d.data.id || d.id),
         card_exit = card.exit(),
         card_enter = card.enter().append("div").attr("class", "card_cont").style('pointer-events', 'none'),
         card_update = card_enter.merge(card);
@@ -937,11 +952,10 @@ import Worker from '@/app.worker';
     
       function cardUpdate(d) {
 
-        Card.call(this, d);
-        const delay = props.initial ? calculateDelay(tree, d, props.transition_time) : 0;
-        d3.select(this).transition().duration(props.transition_time).delay(delay).style("transform", `translate(${d.x}px, ${d.y}px)`).style("opacity", 1);
-      }
-    
+        
+                Card.call(this, d);
+                d3.select(this).transition().duration(props.transition_time).style("transform", `translate(${d.x}px, ${d.y}px)`).style("opacity", 1);
+              }
       function cardExit(d) {
         const g = d3.select(this);
         g.transition().duration(props.transition_time).style("opacity", 0).style("transform", `translate(${d._x}px, ${d._y}px)`)
@@ -1034,8 +1048,8 @@ import Worker from '@/app.worker';
     getUniqueId: getUniqueId
     });
     
-    function updateCardsComponent(div, tree, Card, props={}) {
-      const card = d3.select(getCardsViewFake(() => div)).selectAll("div.card_cont_fake").data(tree.data, d => d.data.id),
+    function updateCardsComponent(div, visibleNodes, Card, props={}) {
+      const card = d3.select(getCardsViewFake(() => div)).selectAll("div.card_cont_fake").data(visibleNodes, d => d.data.id || d.id),
         card_exit = card.exit(),
         card_enter = card.enter().append("div").attr("class", "card_cont_fake").style('display', 'none'),
         card_update = card_enter.merge(card);
@@ -1076,12 +1090,17 @@ import Worker from '@/app.worker';
     }
     
     function view(tree, svg, Card, props={}) {
-    
+      const maxDepth = props.maxDepth || 5; // Define a maximum rendering depth
+      const mainNode = tree.data.find(d => d.data.main);
+      const visibleNodes = tree.data.filter(d => {
+        if (!mainNode) return true; // If no main node, render all
+        return Math.abs(d.depth - mainNode.depth) <= maxDepth; // Basic LOD
+      });
       props.initial = props.hasOwnProperty('initial') ? props.initial : !d3.select(svg.parentNode).select('.card_cont').node();
       props.transition_time = props.hasOwnProperty('transition_time') ? props.transition_time : 2000;
-      if (props.cardComponent) updateCardsComponent(props.cardComponent, tree, Card, props);
-      else if (props.cardHtml) updateCardsHtml(props.cardHtml, tree, Card, props);
-      else updateCards(svg, tree, Card, props);
+      if (props.cardComponent) updateCardsComponent(props.cardComponent, visibleNodes, Card, props, tree);
+      else if (props.cardHtml) updateCardsHtml(props.cardHtml, visibleNodes, Card, props, tree);
+      else updateCards(svg, visibleNodes, Card, props, tree);
       updateLinks(svg, tree, props);
     
       const tree_position = props.tree_position || 'fit';
@@ -1093,7 +1112,19 @@ import Worker from '@/app.worker';
       return true
     }
     
-    function calculateDelay(tree, d, transition_time) {
+    // function calculateDelay(tree, d, transition_time) {
+    //   const delay_level = transition_time*.4,
+    //     ancestry_levels = Math.max(...tree.data.map(d=>d.is_ancestry ? d.depth : 0));
+    //   let delay = d.depth*delay_level;
+    //   if ((d.depth !== 0 || !!d.spouse) && !d.is_ancestry) {
+    //     delay+=(ancestry_levels)*delay_level;  // after ancestry
+    //     if (d.spouse) delay+=delay_level;  // spouse after bloodline
+    //     delay+=(d.depth)*delay_level;  // double the delay for each level because of additional spouse delay
+    //   }
+    //   return delay
+    // }
+    
+    function createSvg(cont, props={}) {
       const delay_level = transition_time*.4,
         ancestry_levels = Math.max(...tree.data.map(d=>d.is_ancestry ? d.depth : 0));
       let delay = d.depth*delay_level;
@@ -1577,7 +1608,8 @@ import Worker from '@/app.worker';
     
       function changed() {
         if (history_index < history.length - 1) history = history.slice(0, history_index);
-        const clean_data = JSON.parse(cleanupDataJson(JSON.stringify(getStoreData())));
+        const arrayOfObjects = Array.from(getStoreData(), ([key, value]) => ({ id: key, data: value }));
+        const clean_data = cleanupDataJson(arrayOfObjects);
         clean_data.main_id = store.getMainId();
         history.push(clean_data);
         history_index++;
@@ -2380,7 +2412,7 @@ import Worker from '@/app.worker';
     }
     
     function findRel(store_data, id) {
-      let found = store_data.find(d => d.id === id);
+      let found = store_data.get(id);
       if (!found) {
         return null;
       }
@@ -2680,7 +2712,7 @@ import Worker from '@/app.worker';
         this.history.controls.updateButtons();
       }
 
-    let cleanUser = this.getStoreData().find((q) => q.id==datum.id);
+    let cleanUser = this.getStoreData().get(datum.id);
       if (this.onChange) this.onChange({"op_type": datum.op_type, ...cleanUser, id: datum.id});
     };
     
@@ -2740,12 +2772,24 @@ import Worker from '@/app.worker';
 
       this.setCard(f3.CardSvg); // set default card
     
+      // Throttling function to limit the rate at which the view updates
+      let timeoutId;
       this.store.setOnUpdate(props => {
         if (this.beforeUpdate) this.beforeUpdate(props);
         props = Object.assign({transition_time: this.transition_time}, props || {});
         if (this.is_card_html) props = Object.assign({}, props || {}, {cardHtml: getHtmlSvg()});
-        f3.view(this.store.getTree(), this.svg, this.getCard(), props || {});
-        if (this.afterUpdate) this.afterUpdate(props);
+
+        // Clear the previous timeout if it exists
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
+
+        // Set a new timeout to execute the view update
+        timeoutId = setTimeout(() => {
+          const tree = this.store.getTree();
+          f3.view(tree, this.svg, this.getCard(), props || {});
+          if (this.afterUpdate) this.afterUpdate(props);
+        }, 100); // Adjust the timeout value (in milliseconds) as needed
       });
     };
     

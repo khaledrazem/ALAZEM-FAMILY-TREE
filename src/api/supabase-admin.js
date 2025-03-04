@@ -22,7 +22,7 @@ class SupaBaseAdminAPI {
     }
 
     const { data: user_details, error } = await this.supabase
-      .from('user_details')
+      .from('user_details_duplicate')
       .select('id,first_name,last_name,avatar,gender,dob');
 
       
@@ -42,7 +42,7 @@ class SupaBaseAdminAPI {
     }
 
     const { data: user_details, error } = await this.supabase
-      .from('user_details')
+      .from('user_details_duplicate')
       .select('*');
 
       
@@ -66,7 +66,7 @@ class SupaBaseAdminAPI {
     }
 
     const { data: user_details, error } = await this.supabase
-      .from('user_details')
+      .from('user_details_duplicate')
       .select('*')
       .eq('id', userId)
       .single();
@@ -128,7 +128,7 @@ class SupaBaseAdminAPI {
     }
     
     const { data, error } = await this.supabase
-    .from('user_details')
+    .from('user_details_duplicate')
     .insert([
       requestData
     ])
@@ -170,7 +170,7 @@ class SupaBaseAdminAPI {
     
     
     const { error } = await this.supabase
-    .from('user_details')
+    .from('user_details_duplicate')
     .delete()
     .eq('id', userId)
       
@@ -189,7 +189,7 @@ class SupaBaseAdminAPI {
     const { id, ...noIdDetails } = userDetails;
 
     const { data, error } = await this.supabase
-    .from('user_details')
+    .from('user_details_duplicate')
     .update(noIdDetails)
     .eq('id', id)
     .select()
@@ -211,7 +211,7 @@ class SupaBaseAdminAPI {
       }
   
       const { data: user_details, error } = await this.supabase
-        .from('user_details')
+        .from('user_details_duplicate')
         .select('*')
         .eq('id', userId)
         .single();

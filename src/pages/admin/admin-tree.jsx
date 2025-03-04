@@ -36,7 +36,7 @@ export default function FamilyTree() {
 
 
     let usersData = await supabaseApi.getAllUsers();
-    const oldestUserId = "6f7d2e96-e957-4208-944d-9f37d57e19c1";
+    const oldestUserId = getOldestUserId(usersData);//"6f7d2e96-e957-4208-944d-9f37d57e19c1";
 
     
     usersData = usersData.map((user) => {
