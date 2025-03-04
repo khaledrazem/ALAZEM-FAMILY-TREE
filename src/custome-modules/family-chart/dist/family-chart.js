@@ -314,8 +314,8 @@ import Worker from '@/app.worker';
       new_rel_datum = JSON.parse(JSON.stringify(new_rel_datum));  // to keep same datum state in current add relative tree
     
       if (rel_type === "son" || rel_type === "daughter") {
-        let mother = data_stash.find(d => d.id === new_rel_datum.rels.mother);
-        let father = data_stash.find(d => d.id === new_rel_datum.rels.father);
+        let mother = data_stash.get(new_rel_datum.rels.mother);
+        let father = data_stash.get(new_rel_datum.rels.father);
     
         new_rel_datum.rels = {};
         if (father) {
@@ -336,17 +336,24 @@ import Worker from '@/app.worker';
     
         // if rel is added in same same add relative tree then we need to clean up duplicate parent
         new_rel_datum.rels.children = new_rel_datum.rels.children.filter(child_id => {
-          const child = data_stash.find(d => d.id === child_id);
+          const child = data_stash.get(child_id);
           if (!child) return false
           if (child.rels.mother !== datum.id) {
-            if (data_stash.find(d => d.id === child.rels.mother)) data_stash.splice(data_stash.findIndex(d => d.id === child.rels.mother), 1);
+            if (data_stash.has(child.rels.mother)) {
+              data_stash.delete(child.rels.mother); // Remove the entry with the key `child.rels.mother`
+            }
             child.rels.mother = new_rel_datum.id;
           }
+          
           if (child.rels.father !== datum.id) {
-            if (data_stash.find(d => d.id === child.rels.father)) data_stash.splice(data_stash.findIndex(d => d.id === child.rels.father), 1);
+            if (data_stash.has(child.rels.father)) {
+              data_stash.delete(child.rels.father); // Remove the entry with the key `child.rels.father`
+            }
             child.rels.father = new_rel_datum.id;
           }
-          return true
+          
+          return true;
+          
         });
     
         new_rel_datum.rels = {
@@ -362,7 +369,7 @@ import Worker from '@/app.worker';
         };
         if (datum.rels.mother) {
           new_rel_datum.rels.spouses = [datum.rels.mother];
-          const mother = data_stash.find(d => d.id === datum.rels.mother);
+          const mother = data_stash.get(datum.rels.mother);
           if (!mother.rels.spouses) mother.rels.spouses = [];
           mother.rels.spouses.push(new_rel_datum.id);
         }
@@ -375,13 +382,13 @@ import Worker from '@/app.worker';
         };
         if (datum.rels.father) {
           new_rel_datum.rels.spouses = [datum.rels.father];
-          const father = data_stash.find(d => d.id === datum.rels.father);
+          const father = data_stash.get(datum.rels.father);
           if (!father.rels.spouses) father.rels.spouses = [];
           father.rels.spouses.push(new_rel_datum.id);
         }
       }
     
-      data_stash.push(new_rel_datum);
+      data_stash.set(new_rel_datum.id, new_rel_datum);
     }
     
     function createNewPerson({data, rels}) {
@@ -2342,16 +2349,16 @@ import Worker from '@/app.worker';
         const father = createNewPerson({data: {gender: "M"}, rels: {children: [datum.id]}});
         father._new_rel_data = {rel_type: "father", label: addRelLabels.father};
         datum.rels.father = father.id;
-        datum_rels.push(father);
+        datum_rels.set(father.id, father);
       }
       if (!datum.rels.mother) {
         const mother = createNewPerson({data: {gender: "F"}, rels: {children: [datum.id]}});
         mother._new_rel_data = {rel_type: "mother", label: addRelLabels.mother};
         datum.rels.mother = mother.id;
-        datum_rels.push(mother);
+        datum_rels.set(mother.id, mother);
       }
-      const mother = datum_rels.find(d => d.id === datum.rels.mother);
-      const father = datum_rels.find(d => d.id === datum.rels.father);
+      const mother = datum_rels.get( datum.rels.mother);
+      const father = datum_rels.get( datum.rels.father);
       mother.rels.spouses = [father.id];
       father.rels.spouses = [mother.id];
     
@@ -2363,7 +2370,7 @@ import Worker from '@/app.worker';
       if (datum.rels.children) {
         let new_spouse;
         datum.rels.children.forEach(child_id => {
-          const child = datum_rels.find(d => d.id === child_id);
+          const child = datum_rels.get(child_id);
           if (!child) return ;
           if (!child.rels.mother) {
             if (!new_spouse) new_spouse = createNewPerson({data: {gender: "F"}, rels: {spouses: [datum.id], children: []}});
@@ -2371,7 +2378,7 @@ import Worker from '@/app.worker';
             new_spouse.rels.children.push(child.id);
             datum.rels.spouses.push(new_spouse.id);
             child.rels.mother = new_spouse.id;
-            datum_rels.push(new_spouse);
+            datum_rels.set(new_spouse.id, new_spouse);
           }
           if (!child.rels.father) {
             if (!new_spouse) new_spouse = createNewPerson({data: {gender: "M"}, rels: {spouses: [datum.id], children: []}});
@@ -2379,7 +2386,7 @@ import Worker from '@/app.worker';
             new_spouse.rels.children.push(child.id);
             datum.rels.spouses.push(new_spouse.id);
             child.rels.father = new_spouse.id;
-            datum_rels.push(new_spouse);
+            datum_rels.set(new_spouse.id, new_spouse);
           }
         });
       }
@@ -2387,11 +2394,11 @@ import Worker from '@/app.worker';
       const new_spouse = createNewPerson({data: {gender: "F"}, rels: {spouses: [datum.id]}});
       new_spouse._new_rel_data = {rel_type: "spouse", label: addRelLabels.spouse};
       datum.rels.spouses.push(new_spouse.id);
-      datum_rels.push(new_spouse);
+      datum_rels.set(new_spouse.id, new_spouse);
     
       if (!datum.rels.children) datum.rels.children = [];
       datum.rels.spouses.forEach(spouse_id => {
-        const spouse = datum_rels.find(d => d.id === spouse_id);
+        const spouse = datum_rels.get( spouse_id);
         if (!spouse.rels.children) spouse.rels.children = [];
         spouse.rels.children = spouse.rels.children.filter(child_id => datum.rels.children.includes(child_id));
         
@@ -2399,13 +2406,13 @@ import Worker from '@/app.worker';
         new_son._new_rel_data = {rel_type: "son", label: addRelLabels.son, other_parent_id: spouse.id};
         spouse.rels.children.push(new_son.id);
         datum.rels.children.push(new_son.id);
-        datum_rels.push(new_son);
+        datum_rels.set(new_son.id, new_son);
     
         const new_daughter = createNewPerson({data: {gender: "F"}, rels: {mother: spouse.id, father: datum.id}});
         new_daughter._new_rel_data = {rel_type: "daughter", label: addRelLabels.daughter, other_parent_id: spouse.id};
         spouse.rels.children.push(new_daughter.id);
         datum.rels.children.push(new_daughter.id);
-        datum_rels.push(new_daughter);
+        datum_rels.set(new_daughter.id,new_daughter);
       });
     
       return datum_rels
@@ -2420,7 +2427,8 @@ import Worker from '@/app.worker';
     }
     
     function getDatumRels(datum, data) {
-            const datum_rels = [datum];
+            const datum_rels = new Map();
+            datum_rels.set(datum.id,datum)
       Object.keys(datum.rels).forEach(rel_type => {
         const rel = datum.rels[rel_type];
         if (Array.isArray(rel)) {
@@ -2445,8 +2453,7 @@ import Worker from '@/app.worker';
           rel_datum.rels.children = [];
           rel_datum.rels.spouses = [];
         }
-    
-        datum_rels.push(rel_datum);
+        datum_rels.set(rel_datum.id, rel_datum);
       }
     }
     

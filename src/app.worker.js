@@ -27,7 +27,7 @@ import { extent } from 'd3';  // ✅ Import only what you need
         const tree = mergeSides(tree_parents, tree_children);
         console.log(3)
   
-        //setupChildrenAndParents({tree});
+        setupChildrenAndParents({tree});
         console.log(4)
   
         setupSpouses({tree, node_separation});
