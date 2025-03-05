@@ -223,12 +223,17 @@ import Worker from '@/app.worker';
       }
     }
     
-    function cleanupDataJson(data_json) {
-      let data_no_to_add = data_json;
-        data_no_to_add.forEach(d => d.to_add ? removeToAdd(d, data_no_to_add) : d);
-        data_no_to_add.forEach(d => delete d.main);
-        data_no_to_add.forEach(d => delete d.hide_rels);
-      return data_no_to_add
+    function cleanupDataJson(data_map) {
+      // Convert Map to an array of objects
+      let data_no_to_add = Array.from(data_map.values());
+    
+      // Process the data
+      data_no_to_add.forEach(d => d.to_add ? removeToAdd(d, data_no_to_add) : d);
+      data_no_to_add.forEach(d => delete d.main);
+      data_no_to_add.forEach(d => delete d.hide_rels);
+    
+      // Convert the array back to a Map
+      return JSON.stringify(Object.fromEntries(cleaned_map), null, 2);
     }
 
     function removeToAddFromData(data) {
@@ -469,7 +474,7 @@ import Worker from '@/app.worker';
   
     
     function createStore(initial_state) {
-      let onUpdate=null;
+      let onUpdate;
       const state = initial_state;
       state.main_id_history = []; 
     
@@ -1615,8 +1620,7 @@ import Worker from '@/app.worker';
     
       function changed() {
         if (history_index < history.length - 1) history = history.slice(0, history_index);
-        const arrayOfObjects = Array.from(getStoreData(), ([key, value]) => ({ id: key, data: value }));
-        const clean_data = cleanupDataJson(arrayOfObjects);
+        const clean_data = JSON.parse(cleanupDataJson(structuredClone(getStoreData())));
         clean_data.main_id = store.getMainId();
         history.push(clean_data);
         history_index++;
@@ -2305,7 +2309,7 @@ import Worker from '@/app.worker';
       function onCancel() {
         if (!this.is_active) return
         this.is_active = false;
-    
+        
         store.updateData(this.getStoreData());
         this.cancelCallback(this.datum);
     
@@ -2719,8 +2723,9 @@ import Worker from '@/app.worker';
         this.history.controls.updateButtons();
       }
 
-    let cleanUser = this.getStoreData().get(datum.id);
-      if (this.onChange) this.onChange({"op_type": datum.op_type, ...cleanUser, id: datum.id});
+        let cleanUser = this.getStoreData().get(datum.id);
+        this.onChange({"op_type": datum.op_type, ...cleanUser, id: datum.id});
+      
     };
     
     
@@ -2767,10 +2772,9 @@ import Worker from '@/app.worker';
       this.svg = f3.createSvg(cont, {onZoom: f3.htmlHandlers.onZoomSetup(getSvgView, getHtmlView)});
       f3.htmlHandlers.createHtmlSvg(cont);
     
-      const dataMap = new Map(data.map(d => [d.id, d]));
 
       this.store = f3.createStore({
-        data: dataMap,
+        data: data,
         node_separation: this.node_separation,
         level_separation: this.level_separation,
         single_parent_empty_card: this.single_parent_empty_card,
@@ -2886,9 +2890,9 @@ import Worker from '@/app.worker';
       return this.editTreeInstance = editTree(this.cont, this.store)
     };
     
-    CreateChart.prototype.updateMain = async function(d) {
+    CreateChart.prototype.updateMain = function(d) {
       this.store.updateMainId(d.data.id);
-      await this.store.updateTree({});
+       this.store.updateTree({});
     
       return this
     };

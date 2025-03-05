@@ -128,7 +128,7 @@ const initializeChart = async () => {
       
       console.log("CRETING");
       console.log(usersData.length);
-      create(usersData);
+      create(    new Map(usersData.map(d => [d.id, d])));
       } catch (error) {
         console.error("Error initializing chart:", error);
         setLoading(false); // Ensure loading is turned off even if there's an error

@@ -77,9 +77,9 @@ export default function FamilyTree() {
 
 
       f3Card.setOnCardClick((e, d) => {
-        f3EditTree.open(d);
         if (f3EditTree.isAddingRelative()) return;
         f3Card.onCardClickDefault(e, d);
+        f3EditTree.open(d);
       });
 
       f3Chart.updateTree({ initial: true });
@@ -94,7 +94,8 @@ export default function FamilyTree() {
 
     
     
-    create(usersData);
+    create( new Map(usersData.map(d => [d.id, d]))
+  );
   };
 
   function cleanup() {
@@ -127,7 +128,7 @@ export default function FamilyTree() {
 
   async function createUser(data) {
     try {
-      
+      return;
       
       if (!data) {
         console.error('No request data available');
@@ -186,7 +187,7 @@ export default function FamilyTree() {
         return formatDataForChart(user)
       });
       f3Chart.updateData({main_id: getOldestUserId(usersData), ...usersData});
-      router.reload();
+      //router.reload();
 
     } catch (error) {
       console.error('Error approving request:', error);
@@ -397,6 +398,7 @@ function formatDataForChart(user) {
 }
 
 async function formatDataForDatabase(data) {
+  console.log(data.data)
   return {
     "first_name": data.data["first name"] ? data.data["first name"] : null,
     "last_name": data.data["last name"] ? data.data["last name"] : null,
