@@ -217,7 +217,7 @@ import Worker from '@/app.worker';
             }
           }
         });
-        data_stash.splice(data_stash.findIndex(d => d.id === datum.id), 1);
+        data_stash.delete(datum.id);
         data_stash.forEach(d => {if (d.to_add) deletePerson(d, data_stash);});  // full update of tree
         if (data_stash.length === 0) data_stash.push(createTreeDataWithMainNode({}).data[0]);
       }
@@ -528,6 +528,7 @@ import Worker from '@/app.worker';
       }
     
       function getDatum(id) {
+        console.log(state.data)
         return state.data.get(id)
       }
     
@@ -1648,6 +1649,9 @@ import Worker from '@/app.worker';
       }
     
       function updateData(data) {
+        console.log(store.getData())
+        console.log("MAYBEBADUPDATINGDATA")
+        console.log(data)
         store.updateMainId(data.main_id);
         store.updateData(data);
         onUpdate();
@@ -2289,6 +2293,9 @@ import Worker from '@/app.worker';
       datum = JSON.parse(JSON.stringify(this.datum));
     
       const datum_rels = getDatumRelsData(datum, this.getStoreData(), this.addRelLabels);
+      console.log(store.getData())
+      console.log("NEWDTA")
+      console.log(datum_rels)
       store.updateData(datum_rels);
       store.updateTree({});
     
@@ -2399,11 +2406,17 @@ import Worker from '@/app.worker';
       const new_spouse = createNewPerson({data: {gender: "F"}, rels: {spouses: [datum.id]}});
       new_spouse._new_rel_data = {rel_type: "spouse", label: addRelLabels.spouse};
       datum.rels.spouses.push(new_spouse.id);
+      console.log(new_spouse)
       datum_rels.set(new_spouse.id, new_spouse);
     
       if (!datum.rels.children) datum.rels.children = [];
       datum.rels.spouses.forEach(spouse_id => {
         const spouse = datum_rels.get( spouse_id);
+
+        console.log(datum)
+        console.log(spouse)
+        console.log(datum_rels)
+
         if (!spouse.rels.children) spouse.rels.children = [];
         spouse.rels.children = spouse.rels.children.filter(child_id => datum.rels.children.includes(child_id));
         
