@@ -113,9 +113,10 @@ import { extent } from 'd3';  // ✅ Import only what you need
                 if (!d.added && !d.is_ancestry && d.data.rels.spouses?.length > 0) {
                     const side = d.data.gender === "M" ? -1 : 1;
                     d.x += d.data.rels.spouses.length / 2 * node_separation * side;
-                    for (const sp_id of d.data.rels.spouses) {
+                    for (let j = 0; j < d.data.rels.spouses.length; j++) {
+                      const sp_id = d.data.rels.spouses[j];
+
                       if (!data_stash.has(sp_id)) {
-                       
                       tree[i].data.rels.spouses = tree[i].data.rels.spouses.filter(spouse => spouse!=sp_id)
   
                       if (tree[i].data.rels.children) {
@@ -138,10 +139,12 @@ import { extent } from 'd3';  // ✅ Import only what you need
                     continue;
                      }
                         const spouse = {data: data_stash.get(sp_id), added: true};
-                        spouse.x = d.x - node_separation * side;
+                        console.log(spouse)
+
+                        spouse.x = d.x - (node_separation * (j + 1)) * side;
                         spouse.y = d.y;
-                        spouse.sx = spouse.x + (node_separation / 2) * side;
-                        spouse.sy = spouse.y;
+                        spouse.sx = j > 0 ? spouse.x : spouse.x + (node_separation/2)*side
+                         spouse.sy = j > 0 ? spouse.y : spouse.y + (node_separation/2)*side
                         spouse.depth = d.depth;
                         spouse.spouse = d;
                         d.spouses = d.spouses || [];
