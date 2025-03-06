@@ -128,7 +128,6 @@ export default function FamilyTree() {
 
   async function createUser(data) {
     try {
-      return;
       
       if (!data) {
         console.error('No request data available');
@@ -407,7 +406,7 @@ async function formatDataForDatabase(data) {
     "gender": data.data["gender"] ? data.data["gender"] : null,
     "dob": data.data["birthday"] ? data.data["birthday"] : null,
     "marital_status": data.rels.spouses ? "Married" : "Single",
-    "avatar": data.data["avatar image"] ? await uploadImage(data.data["avatar image"]) : data.data["avatar"]? data.data["avatar"] : null,
+    "avatar": data.data["avatar image"]?.size>0 ? await uploadImage(data.data["avatar image"]) : data.data["avatar"]? data.data["avatar"] : null,
 
     "spouse": data?.rels?.spouses ? data?.rels?.spouses[0] : null,
     "father": data.rels.father ? data.rels.father : null,

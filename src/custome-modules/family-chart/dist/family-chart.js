@@ -233,6 +233,7 @@ import Worker from '@/app.worker';
       data_no_to_add.forEach(d => delete d.hide_rels);
     
       // Convert the array back to a Map
+      let cleaned_map = new Map(data_no_to_add.map(d => [d.id, d])); // Assuming each object has a unique 'id' field
       return JSON.stringify(Object.fromEntries(cleaned_map), null, 2);
     }
 
@@ -542,7 +543,7 @@ import Worker from '@/app.worker';
     
       function updateMainId(id) {
         if (id === state.main_id) return
-        if (!store.getData().has(id)) return
+       // if (!store.getData().has(id)) return
         state.main_id_history = state.main_id_history.filter(d => d !== id).slice(-10);
         state.main_id_history.push(id);
         state.main_id = id;
@@ -589,11 +590,11 @@ import Worker from '@/app.worker';
       const links = [];
     
       if (d?.data?.rels.spouses && d?.data?.rels.spouses.length > 0) handleSpouse({d, tree, is_horizontal});
-      handleAncestrySide({d, tree, is_horizontal});
+      handleAncestrySide({d});
       handleProgenySide({d, tree, is_horizontal});
       return links;
     
-      function handleAncestrySide({d, tree, is_horizontal}) {
+      function handleAncestrySide({d}) {
         if (!d.parents) return
         const p1 = d.parents[0];
         const p2 = d.parents[1] || p1;
@@ -781,7 +782,7 @@ import Worker from '@/app.worker';
     
         let child = datum;
         let itteration1 = 0;
-        while (child !== main_datum?.data && itteration1 < 100) {
+        while (child !== main_datum.data && itteration1 < 100) {
           itteration1++;  // to prevent infinite loop
           const child_link = links_data.find(d => d.target === child && Array.isArray(d.source));
           if (child_link) {
@@ -831,7 +832,7 @@ import Worker from '@/app.worker';
         return cards_to_main
     
         function getChildren(d) {
-          if (d?.data?.rels?.children) {
+          if (d.data.rels.children) {
             d.data.rels.children.forEach(child_id => {
               const child = all_cards.find(d0 => d0.data.id === child_id);
               if (child) {
@@ -1545,15 +1546,15 @@ import Worker from '@/app.worker';
           ${field.type === 'text' ? `
             <div class="f3-form-field">
               <label>${field.label}</label>
-              <input type="${field.type}" 
-                name="${field.id}" 
+              <input type="${field.type}"
+                name="${field.id}"
                 value="${field.initial_value || ''}"
                 placeholder="${field.label}">
             </div>
           ` : field.type === 'textarea' ? `
             <div class="f3-form-field">
               <label>${field.label}</label>
-              <textarea name="${field.id}" 
+              <textarea name="${field.id}"
                 placeholder="${field.label}">${field.initial_value || ''}</textarea>
             </div>
           ` : field.type === 'image'? `
@@ -2497,7 +2498,7 @@ import Worker from '@/app.worker';
     };
     
     EditTree.prototype.open = function(datum) {
-      if (!datum) return;
+     // if (!datum) return;
       if (datum.data.data) datum = datum.data;
       if (this.addRelativeInstance.is_active && !datum._new_rel_data) {
         this.addRelativeInstance.onCancel();
@@ -2530,10 +2531,12 @@ import Worker from '@/app.worker';
           this.store.updateTree({});
         };
       }
+      
+      datum = this.store.getDatum(datum.id);
     
       const form_creator = f3.handlers.createForm({
-        store: this.store, 
-        datum, 
+        store: this.store,
+        datum,
         postSubmit: postSubmit.bind(this),
         fields: this.fields, 
         card_display: this.card_display, 
