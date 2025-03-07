@@ -81,7 +81,7 @@ useEffect(() => {
               emailAddress: userDetails.email,
               publicEmail: userDetails.publicEmail,
               galleryPhotos: userDetails.gallery_photos,
-              spouse: users.find((item) => item.id === userDetails?.spouse),
+              spouses: userDetails?.spouses ? users.filter((item) => userDetails.spouses.includes(item.id)) : [],
               siblings: userDetails?.siblings ? users.filter((item) => userDetails.siblings.includes(item.id)) : [],
               father: users.find((item) => item.id === userDetails?.father),
               mother: users.find((item) => item.id === userDetails?.mother),
@@ -217,23 +217,23 @@ useEffect(() => {
           </div>
 
           <div className={styles.datarow}>
-            <label>Spouse: </label>
+            <label>Spouses: </label>
             <Controller
               control={control}
-              name="spouse"
+              name="spouses"
               render={({ field: { onChange, value } }) => (
                 <Autocomplete
-                value={value || null}
-                  onChange={(event, item) => {
+                value={value || []}
+                onChange={(_event, item) => {
                     onChange(item);
                   }}
+                  multiple
                   disablePortal
                   options={users}
                   getOptionLabel={(option) => 
                     `${option.data.firstName} ${option.data.lastName} (DOB: ${option.data.birthday})`
-                  }
-                  sx={{ width: 300 }}
-                  renderInput={(params) => <TextField {...params} label="Spouse" />}
+                  }                  sx={{ width: 300 }}
+                  renderInput={(params) => <TextField {...params} label="Spouses" />}
                   renderOption={(props, option) => {
                     const { key, ...optionProps } = props;
                     return (
@@ -250,6 +250,7 @@ useEffect(() => {
               )}
             />
           </div>
+
 
           <div className={styles.datarow}>
             <label>Father: </label>

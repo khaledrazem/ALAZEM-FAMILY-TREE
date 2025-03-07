@@ -33,6 +33,7 @@ export default function UserPage() {
       "public_email": data.publicEmail ? data.publicEmail : false,
       "father": data.father ? data.father.id : null,
       "mother": data.mother ? data.mother.id : null,
+      "spouses": data.spouses && data.spouses.length>0? data.spouses.map((spouse) => spouse.id) : null,
       "siblings": data.siblings && data.siblings.length>0? data.siblings.map((sibling) => sibling.id) : null,
       "children": data.children && data.children.length>0 ? data.children.map((child) => child.id) : null,
       "is_editing": false,

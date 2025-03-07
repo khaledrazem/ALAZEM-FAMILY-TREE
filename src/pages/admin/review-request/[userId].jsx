@@ -21,7 +21,7 @@ export default function ReviewRequest() {
       reset({
         firstName: request.data.firstName,
         lastName: request.data.lastName,
-        spouse: request.data.spouse,
+        spouses: request.data.spouses,
         father: request.data.father,
         mother: request.data.mother
       });
@@ -91,7 +91,7 @@ export default function ReviewRequest() {
           publicEmail: userData.public_email || false,
           gallaryPhotos: userData.gallery_photos || null,
           identityDocuments: userData.id_documents || null,
-          spouse: userData.spouse ? users.find((user) => user.id === userData.spouse) || null : null,
+          spouses: userData.spouses ? users.filter((user) => userData.spouses.includes(user.id)) || null : null,
           father: userData.father ? users.find((user) => user.id === userData.father) || null : null,
           mother: userData.mother ? users.find((user) => user.id === userData.mother) || null : null,
           siblings: userData.siblings ? users.filter((user) => userData.siblings.includes(user.id)) || null : null,
@@ -148,7 +148,7 @@ export default function ReviewRequest() {
         mother: formData.mother?.id || null,
         siblings: request.data.siblings?.length > 0 ? request.data.siblings.map(sibling => sibling.id) : null,
         children: request.data.children?.length > 0 ? request.data.children.map(child => child.id) : null,
-        spouse: formData.spouse?.id || null
+        spouses: request.data.spouses?.length > 0 ? request.data.spouses.map(spouse => spouse.id) : null,
       };
 
       if (isUpdate) {
@@ -191,15 +191,34 @@ export default function ReviewRequest() {
   const updateFamilyRelationships = async (formattedRequest, newUserId) => {
     try {
       // Update spouse relationship (reciprocal)
-      if (formattedRequest.spouse) {
-        const spouseDetails = await supabaseApi.getUserDetails(formattedRequest.spouse);
-        if (spouseDetails && spouseDetails.id) {
-          // Update spouse's spouse field
-          await supabaseApi.updateUser({
-            id: spouseDetails.id,
-            spouse: newUserId
-          });
+      if (formattedRequest.spouses && formattedRequest.spouses.length > 0) {
+        // First, get the current user's siblings array
+        const currentUserDetails = await supabaseApi.getUserDetails(newUserId);
+        const currentUserSpouses = new Set(currentUserDetails?.spouses || []);
+        
+        for (const spouseId of formattedRequest.spouses) {
+          // Skip if trying to add self as sibling
+          if (spouseId === newUserId) continue;
+          
+          const spouseDetails = await supabaseApi.getUserDetails(spouseId);
+          if (spouseDetails && spouseDetails.id) {
+            // Update spouseDetails's spouseDetails array
+            const updatedSpouse = Array.from(new Set([...(spouseDetails.spouses || []), newUserId]));
+            await supabaseApi.updateUser({
+              id: spouseDetails.id,
+              spouses: updatedSpouse
+            });
+            
+            // Add this sibling to current user's siblings set
+            currentUserSpouses.add(spouseId);
+          }
         }
+
+        // Update current user's siblings array
+        await supabaseApi.updateUser({
+          id: newUserId,
+          spouses: Array.from(currentUserSpouses)
+        });
       }
 
       // Update father's children array
@@ -368,37 +387,40 @@ export default function ReviewRequest() {
             <div className={styles.infoGroup}>
               <h2>Family Information</h2>
               <div className={styles.infoGrid}>
-                <div className={styles.infoItem}>
-                  <label>Spouse</label>
-                  <Controller
-                    control={control}
-                    name="spouse"
-                     className='autocomplete'
-                    defaultValue={request?.data?.spouse || null}
-                    render={({ field: { onChange, value } }) => (
-                      <Autocomplete
-                        value={value || null}
-                        onChange={(event, item) => {
-                          onChange(item);
-                        }}
-                        disablePortal
-                        options={users}
-                        className='autocomplete'
-
-                        getOptionLabel={(option) =>
-                          `${option.data.firstName} ${option.data.lastName} (DOB: ${option.data.birthday})`
-                        }
-                        sx={{ width: 300 }}
-                        renderInput={(params) => <TextField {...params} label="Spouse" />}
-                        renderOption={(props, option) => (
-                          <Box component="li" {...props}>
-                            {option.data.firstName}{" "}{option.data.lastName}{" "}{"DOB: "}{option.data.birthday}
-                          </Box>
-                        )}
-                      />
-                    )}
-                  />
-                </div>
+              <div className={styles.infoItem}>
+            <label>Spouses: </label>
+            <Controller
+              control={control}
+              name="spouses"
+              render={({ field: { onChange, value } }) => (
+                <Autocomplete
+                value={value || []}
+                onChange={(_event, item) => {
+                    onChange(item);
+                  }}
+                  multiple
+                  disablePortal
+                  options={users}
+                  getOptionLabel={(option) => 
+                    `${option.data.firstName} ${option.data.lastName} (DOB: ${option.data.birthday})`
+                  }                  sx={{ width: 300 }}
+                  renderInput={(params) => <TextField {...params} label="Spouses" />}
+                  renderOption={(props, option) => {
+                    const { key, ...optionProps } = props;
+                    return (
+                      <Box
+                        key={key}
+                        component="li"
+                        {...optionProps}
+                      >
+                        {option.data.firstName}{" "} {option.data.lastName} {" "}{"DOB: "}{option.data.birthday}
+                      </Box>
+                    );
+                  }}
+                />
+              )}
+            />
+          </div>
                 <div className={styles.infoItem}>
                   <label>Father</label>
                   <Controller
