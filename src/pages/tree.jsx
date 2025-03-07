@@ -36,16 +36,29 @@ const initializeChart = async () => {
 
       let usersData = await supabaseApi.getAllUsers();
       // Function to get the ID of the oldest user
-      const getOldestUserId = (users) => {
+      function getOldestUserId(users) {
         if (!users || users.length === 0) return null;
-        let oldestUser = users[0];
+    
+        let oldestUser = null;
         users.forEach(user => {
-          if (new Date(user.dob) < new Date(oldestUser.dob)) {
-        oldestUser = user;
-          }
+            // Skip users with no dob or invalid dob
+            if (!user.dob) return;
+    
+            // Initialize oldestUser if it's null and user has a valid dob
+            if (!oldestUser) {
+                oldestUser = user;
+                return;
+            }
+    
+            // Compare dates if dob is present
+            if (new Date(user.dob) < new Date(oldestUser.dob)) {
+                oldestUser = user;
+            }
         });
-        return oldestUser.id;
-      };
+    
+        console.log(oldestUser);
+        return oldestUser ? oldestUser.id : null;
+    };
 
       const oldestUserId = getOldestUserId(usersData); //"6f7d2e96-e957-4208-944d-9f37d57e19c1";
       
@@ -65,11 +78,10 @@ const initializeChart = async () => {
           "rels": {
             "father": user.father,
             "mother": user.mother,
-            "spouses": user.spouse ? [user.spouse]:null,
+            "spouses": user.spouses ? user.spouses : null,
             "children": user.children ? user.children : null,
             "siblings": user.siblings ? user.siblings : null
           }
-  
         }
 });
 

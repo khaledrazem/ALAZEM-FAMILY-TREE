@@ -2402,8 +2402,7 @@ import Worker from '@/app.worker';
           }
         });
       }
-    
-      const new_spouse = createNewPerson({data: {gender: "F"}, rels: {spouses: [datum.id]}});
+      const new_spouse = createNewPerson({data: {gender: datum.data.gender=="F"? "M" :"F"}, rels: {spouses: [datum.data.id]}});
       new_spouse._new_rel_data = {rel_type: "spouse", label: addRelLabels.spouse};
       datum.rels.spouses.push(new_spouse.id);
       console.log(new_spouse)
@@ -2420,13 +2419,13 @@ import Worker from '@/app.worker';
         if (!spouse.rels.children) spouse.rels.children = [];
         spouse.rels.children = spouse.rels.children.filter(child_id => datum.rels.children.includes(child_id));
         
-        const new_son = createNewPerson({data: {gender: "M"}, rels: {father: datum.id, mother: spouse.id}});
+        const new_son = createNewPerson({data: {gender: "M"}, rels: {father:datum.data.gender=="M"? datum.id:spouse.id, mother: datum.data.gender=="F"? datum.id:spouse.id}});
         new_son._new_rel_data = {rel_type: "son", label: addRelLabels.son, other_parent_id: spouse.id};
         spouse.rels.children.push(new_son.id);
         datum.rels.children.push(new_son.id);
         datum_rels.set(new_son.id, new_son);
     
-        const new_daughter = createNewPerson({data: {gender: "F"}, rels: {mother: spouse.id, father: datum.id}});
+        const new_daughter = createNewPerson({data: {gender: "F"}, rels: {father:datum.data.gender=="M"? datum.id:spouse.id, mother: datum.data.gender=="F"? datum.id:spouse.id}});
         new_daughter._new_rel_data = {rel_type: "daughter", label: addRelLabels.daughter, other_parent_id: spouse.id};
         spouse.rels.children.push(new_daughter.id);
         datum.rels.children.push(new_daughter.id);

@@ -19,14 +19,28 @@ export default function FamilyTree() {
   // Function to get the ID of the oldest user
   function getOldestUserId(users) {
     if (!users || users.length === 0) return null;
-    let oldestUser = users[0];
+
+    let oldestUser = null;
     users.forEach(user => {
-      if (new Date(user.dob) < new Date(oldestUser.dob)) {
-    oldestUser = user;
-      }
+        // Skip users with no dob or invalid dob
+        if (!user.dob) return;
+
+        // Initialize oldestUser if it's null and user has a valid dob
+        if (!oldestUser) {
+            oldestUser = user;
+            return;
+        }
+
+        // Compare dates if dob is present
+        if (new Date(user.dob) < new Date(oldestUser.dob)) {
+            oldestUser = user;
+        }
     });
-    return oldestUser.id;
-  };
+
+    console.log(oldestUser);
+    return oldestUser ? oldestUser.id : null;
+};
+
 
   // Initialize chart
   async function initializeChart() {
@@ -69,6 +83,7 @@ export default function FamilyTree() {
 
       f3EditTree.setEdit();
       f3EditTree.setOnChange((data) => {
+        console.log(data)
         
           createUser(data);
         
@@ -77,9 +92,10 @@ export default function FamilyTree() {
 
 
       f3Card.setOnCardClick((e, d) => {
+        f3EditTree.open(d);
+
         if (f3EditTree.isAddingRelative()) return;
         f3Card.onCardClickDefault(e, d);
-        f3EditTree.open(d);
       });
 
       f3Chart.updateTree({ initial: true });
@@ -92,7 +108,8 @@ export default function FamilyTree() {
 
 
 
-    
+    //    create( new Map(usersData.map(d => [d.id, d]))
+
     
     create( new Map(usersData.map(d => [d.id, d]))
   );
@@ -186,7 +203,7 @@ export default function FamilyTree() {
         return formatDataForChart(user)
       });
       f3Chart.updateData({main_id: getOldestUserId(usersData), ...usersData});
-      //router.reload();
+      router.reload();
 
     } catch (error) {
       console.error('Error approving request:', error);
@@ -198,13 +215,16 @@ export default function FamilyTree() {
   const removeFamilyRelationships = async (userDetails) => {
     try {
       // Remove from spouse's relationship
-      if (userDetails.spouse) {
-        const spouseDetails = await supabaseApi.getUserDetails(userDetails.spouse);
-        if (spouseDetails) {
-          await supabaseApi.updateUser({
-            id: spouseDetails.id,
-            spouse: null
-          });
+      if (userDetails.spouses && userDetails.spouses.length > 0) {
+        for (const spouseId of userDetails.spouses) {
+          const spouseDetails = await supabaseApi.getUserDetails(spouseId);
+          if (spouseDetails && spouseDetails.spouses) {
+            const updatedSpouses = spouseDetails.spouses.filter(id => id !== userDetails.id);
+            await supabaseApi.updateUser({
+              id: spouseId,
+              spouses: updatedSpouses
+            });
+          }
         }
       }
 
@@ -271,17 +291,28 @@ export default function FamilyTree() {
   };
 
   const updateFamilyRelationships = async (formattedRequest, newUserId) => {
+    console.log(formattedRequest)
     try {
       // Update spouse relationship (reciprocal)
-      if (formattedRequest.spouse) {
-        const spouseDetails = await supabaseApi.getUserDetails(formattedRequest.spouse);
-        if (spouseDetails && spouseDetails.id) {
-          // Update spouse's spouse field
-          await supabaseApi.updateUser({
-            id: spouseDetails.id,
-            spouse: newUserId
-          });
+      if (formattedRequest.spouses && formattedRequest.spouses.length > 0) {
+
+        for (const spouseId of formattedRequest.spouses) {
+          // Skip if trying to add self as sibling
+          if (spouseId === newUserId) continue;
+
+          const spouseDetails = await supabaseApi.getUserDetails(spouseId);
+          if (spouseDetails && spouseDetails.id) {
+            // Update sibling's siblings array
+            const updatedSpouses = Array.from(new Set([...(spouseDetails.spouses || []), newUserId]));
+            await supabaseApi.updateUser({
+              id: spouseDetails.id,
+              spouses: updatedSpouses
+            });
+
+          }
         }
+
+
       }
 
       // Update father's children array
@@ -389,7 +420,7 @@ function formatDataForChart(user) {
     "rels": {
       "father": user.father,
       "mother": user.mother,
-      "spouses": user.spouse ? [user.spouse] : null,
+      "spouses": user.spouses ? user.spouses : null,
       "children": user.children ? user.children : null,
       "siblings": user.siblings ? user.siblings : null
     }
@@ -398,6 +429,9 @@ function formatDataForChart(user) {
 
 async function formatDataForDatabase(data) {
   console.log(data.data)
+  console.log(data.data["avatar image"])
+  console.log(data.data["avatar image"]?.size)
+
   return {
     "first_name": data.data["first name"] ? data.data["first name"] : null,
     "last_name": data.data["last name"] ? data.data["last name"] : null,
@@ -408,7 +442,7 @@ async function formatDataForDatabase(data) {
     "marital_status": data.rels.spouses ? "Married" : "Single",
     "avatar": data.data["avatar image"]?.size>0 ? await uploadImage(data.data["avatar image"]) : data.data["avatar"]? data.data["avatar"] : null,
 
-    "spouse": data?.rels?.spouses ? data?.rels?.spouses[0] : null,
+    "spouses": data?.rels?.spouses ? data?.rels?.spouses : null,
     "father": data.rels.father ? data.rels.father : null,
     "mother": data.rels.mother ? data.rels.mother : null,
     "siblings": data.rels.siblings && data.rels.siblings.length > 0 ? data.rels.siblings : null,
