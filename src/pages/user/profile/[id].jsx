@@ -71,7 +71,7 @@ export default function UserPage() {
         rels: {
           father: data.father,
           mother: data.mother,
-          spouses: data.spouse || [],
+          spouses: data.spouses || [],
           children: data.children || [],
           siblings: data.siblings || []
         }
@@ -88,13 +88,23 @@ export default function UserPage() {
   }
 
   async function getSpouses() {
-    if (!userDetails?.rels?.spouse) {
-      return null;
+    if (!userDetails?.rels?.spouses || userDetails?.rels?.spouses.length==0) {
+      return [];
     }
-    //TODO: loop through data.rel.spouses and get data using each id
-    let usersData = await supabaseApi.getUserDetails(userDetails.rels.spouses);
-    setSpouses( formatData(usersData));
-  }
+    // Initializing an empty array to hold the formatted user data
+    let usersData = [];
+  
+    if (userDetails.rels.spouses) {
+      // Using a for...of loop to iterate over each sibling
+      for (const spouse of userDetails.rels.spouses) {
+        // Await the result of the asynchronous API call
+        let user = await supabaseApi.getUserDetails(spouse);
+        // Format the user data and push it to the usersData array
+        if (user ) usersData.push(formatData(user));
+      }
+    }
+    setSpouses( usersData); 
+   }
 
   async function getSiblings() {
     if (!userDetails?.rels?.siblings || userDetails?.rels?.siblings.length==0) {
@@ -109,7 +119,7 @@ export default function UserPage() {
         // Await the result of the asynchronous API call
         let user = await supabaseApi.getUserDetails(sibling);
         // Format the user data and push it to the usersData array
-        usersData.push(formatData(user));
+        if (user ) usersData.push(formatData(user));
       }
     }
     setSiblings( usersData); 
@@ -122,11 +132,11 @@ export default function UserPage() {
     let usersData = [];
     if (userDetails?.rels?.father) {
       let user = await supabaseApi.getUserDetails(userDetails.rels.father);
-      usersData.push(formatData(user));
+      if (user ) usersData.push(formatData(user));
     }
     if (userDetails?.rels?.mother) {
       let user = await supabaseApi.getUserDetails(userDetails.rels.mother);
-      usersData.push(formatData(user));
+      if (user ) usersData.push(formatData(user));
     }
   
     
@@ -147,10 +157,9 @@ export default function UserPage() {
             let user = await supabaseApi.getUserDetails(child);
             
             // Format the user data and push it to the usersData array
-            usersData.push(formatData(user));
+            if (user ) usersData.push(formatData(user));
           }
         }
-        
         
     setChildren( usersData);
   }
@@ -210,14 +219,21 @@ export default function UserPage() {
             </label>
           </div>
 
-          <div className={styles.datarow}>
-            <label>
-              <span className={styles['label-title']}>Spouse:</span>
-              {spouses?.[0]?.data ?
-                `${spouses[0].data.firstName || ''} ${spouses[0].data.lastName || ''}` :
-                'N/A'}
-            </label>
-          </div>
+          {spouses && spouses.length > 0 && (
+            <div className={styles.datarow}>
+              <label>
+                <span className={styles['label-title']}>Spouses:</span>
+                <div className={styles.relatives}>
+                  {spouses.map((spouse) => (
+                    <span key={spouse.id} className={styles.relative}>
+                      {spouse.data.firstName} {spouse.data.lastName}
+                    </span>
+                  ))}
+                </div>
+              </label>
+            </div>
+          )}
+
 
           {siblings && siblings.length > 0 && (
             <div className={styles.datarow}>

@@ -7,7 +7,7 @@ import { extent } from 'd3';  // ✅ Import only what you need
 
     self.addEventListener('message', e => { // eslint-disable-line no-restricted-globals
         if (!e) return;
-        let { data, main_id, node_separation, level_separation, single_parent_empty_card, is_horizontal} = e.data;
+        let { data, main_id, node_separation, level_separation, single_parent_empty_card, is_horizontal, max_depth} = e.data;
   
         
         console.log(1)
@@ -17,8 +17,8 @@ import { extent } from 'd3';  // ✅ Import only what you need
         sortChildrenWithSpouses(data_stash);
     
         const main = (main_id !== null && data_stash.has(main_id)) ? data_stash.get(main_id) : data_stash.values().next().value;
-        const tree_children = calculateTreePositions(main, 'children', false);
-        const tree_parents = calculateTreePositions(main, 'parents', true);
+        const tree_children = calculateTreePositions(main, 'children', false, max_depth);
+        const tree_parents = calculateTreePositions(main, 'parents', true, max_depth);
         console.log(2)
   
         for (const d of data_stash.values()) d.main = d.id === main.id;
@@ -46,13 +46,13 @@ import { extent } from 'd3';  // ✅ Import only what you need
         console.log(8)
         postMessage({data: tree, data_stash, dim, main_id: main.id, is_horizontal});
     
-        function calculateTreePositions(datum, rt, is_ancestry) {
+        function calculateTreePositions(datum, rt, is_ancestry, max_depth = Infinity) {
             const hierarchyGetter = rt === "children" ? hierarchyGetterChildren : hierarchyGetterParents;
             const d3_tree = d3tree().nodeSize([node_separation, level_separation]).separation(separation);
             const root = hierarchy(datum, hierarchyGetter);
             d3_tree(root);
             
-            return root.descendants();
+            return root.descendants().filter(d => Math.abs(d.depth-root.depth)<= max_depth);
     
             function separation(a, b) {
                 let offset = 1;
@@ -288,4 +288,3 @@ import { extent } from 'd3';  // ✅ Import only what you need
       return all_rels.every(rel_id => data.some(d => d?.data?.id === rel_id))
     }
     })
-  

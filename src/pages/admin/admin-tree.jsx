@@ -62,6 +62,8 @@ export default function FamilyTree() {
         .setTransitionTime(1000)
         .setCardXSpacing(450)
         .setCardYSpacing(450)
+        .setMaxDepth(5)
+
         .setOrientationVertical()
         .updateMainId(oldestUserId)
 

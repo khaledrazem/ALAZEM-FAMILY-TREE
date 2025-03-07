@@ -452,13 +452,12 @@ import Worker from '@/app.worker';
       return all_rels.every(rel_id => data.some(d => d?.data?.id === rel_id))
     }
     
-    async function CalculateTree({data, main_id=null, node_separation=250, level_separation=150, single_parent_empty_card=true, is_horizontal=false, onComplete}) {
+    async function CalculateTree({data, main_id=null, node_separation=250, level_separation=150, single_parent_empty_card=true, is_horizontal=false, onComplete, max_depth}) {
       if (!data || !data.size) return {data: [], data_stash: new Map(), dim: {width: 0, height: 0}, main_id: null};
 
       const webWorker = new Worker();
 
-
-      webWorker.postMessage({ data: data, main_id: main_id, node_separation: node_separation, level_separation: level_separation, single_parent_empty_card: single_parent_empty_card, is_horizontal: is_horizontal});
+      webWorker.postMessage({ data: data, main_id: main_id, node_separation: node_separation, level_separation: level_separation, single_parent_empty_card: single_parent_empty_card, is_horizontal: is_horizontal, max_depth});
     
    
       
@@ -487,6 +486,7 @@ import Worker from '@/app.worker';
             node_separation: state.node_separation, level_separation: state.level_separation,
             single_parent_empty_card: state.single_parent_empty_card,
             is_horizontal: state.is_horizontal,
+            max_depth: state.max_depth,
             onComplete: (finalTree) => {
               state.tree =finalTree
               console.log(1231231312)
@@ -900,8 +900,8 @@ import Worker from '@/app.worker';
     
     }
     
-      function updateCards(svg, visibleNodes, Card, props={}, tree) {
-        const card = d3.select(svg).select(".cards_view").selectAll("g.card_cont").data(visibleNodes, d => d.data.id || d.id),
+      function updateCards(svg, tree, Card, props={}) {
+        const card = d3.select(svg).select(".cards_view").selectAll("g.card_cont").data(tree, d => d.data.id || d.id),
         card_exit = card.exit(),
         card_enter = card.enter().append("g").attr("class", "card_cont"),
         card_update = card_enter.merge(card);
@@ -938,8 +938,8 @@ import Worker from '@/app.worker';
       }
     }
     
-      function updateCardsHtml(div, visibleNodes, Card, props={}, tree) {
-      const card = d3.select(div).select(".cards_view").selectAll("div.card_cont").data(visibleNodes, d => d.data.id || d.id),
+      function updateCardsHtml(div, tree, Card, props={}) {
+      const card = d3.select(div).select(".cards_view").selectAll("div.card_cont").data(tree.data, d => d.data?.id),
         card_exit = card.exit(),
         card_enter = card.enter().append("div").attr("class", "card_cont").style('pointer-events', 'none'),
         card_update = card_enter.merge(card);
@@ -1062,8 +1062,8 @@ import Worker from '@/app.worker';
     getUniqueId: getUniqueId
     });
     
-    function updateCardsComponent(div, visibleNodes, Card, props={}) {
-      const card = d3.select(getCardsViewFake(() => div)).selectAll("div.card_cont_fake").data(visibleNodes, d => d.data.id || d.id),
+    function updateCardsComponent(div, tree, Card, props={}) {
+      const card = d3.select(getCardsViewFake(() => div)).selectAll("div.card_cont_fake").data(tree.data, d => d.data.id),
         card_exit = card.exit(),
         card_enter = card.enter().append("div").attr("class", "card_cont_fake").style('display', 'none'),
         card_update = card_enter.merge(card);
@@ -1104,17 +1104,11 @@ import Worker from '@/app.worker';
     }
     
     function view(tree, svg, Card, props={}) {
-      const maxDepth = props.maxDepth || 5; // Define a maximum rendering depth
-      const mainNode = tree.data.find(d => d.data.main);
-      const visibleNodes = tree.data.filter(d => {
-        if (!mainNode) return true; // If no main node, render all
-        return Math.abs(d.depth - mainNode.depth) <= maxDepth; // Basic LOD
-      });
       props.initial = props.hasOwnProperty('initial') ? props.initial : !d3.select(svg.parentNode).select('.card_cont').node();
       props.transition_time = props.hasOwnProperty('transition_time') ? props.transition_time : 2000;
-      if (props.cardComponent) updateCardsComponent(props.cardComponent, visibleNodes, Card, props, tree);
-      else if (props.cardHtml) updateCardsHtml(props.cardHtml, visibleNodes, Card, props, tree);
-      else updateCards(svg, visibleNodes, Card, props, tree);
+      if (props.cardComponent) updateCardsComponent(props.cardComponent, tree, Card, props);
+      else if (props.cardHtml) updateCardsHtml(props.cardHtml, tree, Card, props);
+      else updateCards(svg, tree, Card, props);
       updateLinks(svg, tree, props);
     
       const tree_position = props.tree_position || 'fit';
@@ -2767,6 +2761,7 @@ import Worker from '@/app.worker';
       this.is_horizontal = false;
       this.single_parent_empty_card = true;
       this.transition_time = 2000;
+      this.max_depth = Infinity;
     
       this.is_card_html = false;
     
@@ -2787,13 +2782,13 @@ import Worker from '@/app.worker';
       this.svg = f3.createSvg(cont, {onZoom: f3.htmlHandlers.onZoomSetup(getSvgView, getHtmlView)});
       f3.htmlHandlers.createHtmlSvg(cont);
     
-
       this.store = f3.createStore({
         data: data,
         node_separation: this.node_separation,
         level_separation: this.level_separation,
         single_parent_empty_card: this.single_parent_empty_card,
-        is_horizontal: this.is_horizontal
+        is_horizontal: this.is_horizontal,
+        max_depth: this.max_depth
       });
 
       this.setCard(f3.CardSvg); // set default card
@@ -2850,6 +2845,18 @@ import Worker from '@/app.worker';
       this.node_separation = card_x_spacing;
       this.store.state.node_separation = card_x_spacing;
     
+      return this
+    };
+
+    CreateChart.prototype.setMaxDepth = function(max_depth) {
+      if (typeof max_depth !== 'number') {
+        console.error('max_depth must be a number');
+        return this
+      }
+
+      this.max_depth = max_depth;   
+      this.store.state.max_depth = max_depth;
+ 
       return this
     };
     
@@ -3062,10 +3069,14 @@ import Worker from '@/app.worker';
       this.store.updateTree({});
     };
     
-    CardSvg.prototype.setOnCardClick = function(onCardClick) {
-      this.onCardClick = onCardClick;
-    
-      return this
+    CardSvg.prototype.setOnCardClick = function (onCardClick) {
+      this.onCardClick = (e, d) => {
+        if (onCardClick) {
+          onCardClick(e, d);  // Execute the custom function if provided
+        }
+        this.onCardClickDefault(e, d);  // Always execute the default function first
+      };
+   
     };
     
     CardHtmlWrapper.is_html = true;
@@ -3111,9 +3122,15 @@ import Worker from '@/app.worker';
       return this
     };
     
-    CardHtml$1.prototype.setOnCardClick = function(onCardClick) {
-      this.onCardClick = onCardClick;
-      return this
+    CardHtml$1.prototype.setOnCardClick = function (onCardClick) {
+      this.onCardClick = (e, d) => {
+        if (onCardClick) {
+          onCardClick(e, d);  // Execute the custom function if provided
+        }
+        this.onCardClickDefault(e, d);  // Always execute the default function first
+
+      };
+      return this;
     };
     
     CardHtml$1.prototype.onCardClickDefault = function(e, d) {
