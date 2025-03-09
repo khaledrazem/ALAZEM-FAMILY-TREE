@@ -60,8 +60,7 @@ const initializeChart = async () => {
         return oldestUser ? oldestUser.id : null;
     };
 
-      const oldestUserId =
-       getOldestUserId(usersData); //"6f7d2e96-e957-4208-944d-9f37d57e19c1";
+      const oldestUserId ="6f7d2e96-e957-4208-944d-9f37d57e19c1"; //getOldestUserId(usersData); "6f7d2e96-e957-4208-944d-9f37d57e19c1";
       
       
       usersData = usersData.map((user) => {
@@ -100,7 +99,7 @@ const initializeChart = async () => {
         console.log("NEXT")
 
         f3Chart
-        .setMaxDepth(5)
+        .setMaxDepth(3)
           .setTransitionTime(1000)
           .setCardXSpacing(450)
           .setCardYSpacing(450)
@@ -129,7 +128,7 @@ const initializeChart = async () => {
         f3Chart
           .updateTree({
             initial: true,
-            method: 'fit',
+            tree_position: 'main_to_middle',
             onComplete: onCompleteFunction
           });
           console.log("NEXT24")

@@ -1,8 +1,9 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import f3 from '../../custome-modules/family-chart/dist/family-chart.js';
 import SupaBaseAdminAPI from "@/api/supabase-admin.js";
 import { useRouter } from "next/router.js";
 import CloudinaryUserAPI from '@/api/cloudinary-user';
+import styles from '@/styles/tree.module.css';
 
 export default function FamilyTree() {
   const containerRef = useRef();
@@ -12,6 +13,7 @@ export default function FamilyTree() {
 
   const supabaseApi = new SupaBaseAdminAPI();
   const cloudinaryApi = new CloudinaryUserAPI();
+  const [loading, setLoading] = useState(false);
 
 
   let f3Chart=null
@@ -44,13 +46,18 @@ export default function FamilyTree() {
 
   // Initialize chart
   async function initializeChart() {
-    if (!containerRef.current) return;
 
 
-
+    setLoading(true); // Start loading
+  
+    if (!containerRef.current) {
+      setLoading(false);
+      return;
+    }
+  
 
     let usersData = await supabaseApi.getAllUsers();
-    const oldestUserId = getOldestUserId(usersData);//"6f7d2e96-e957-4208-944d-9f37d57e19c1";
+    const oldestUserId ="6f7d2e96-e957-4208-944d-9f37d57e19c1"; //getOldestUserId(usersData); "6f7d2e96-e957-4208-944d-9f37d57e19c1";
 
     
     usersData = usersData.map((user) => {
@@ -59,10 +66,11 @@ export default function FamilyTree() {
 
     function create(data) {
       f3Chart = f3.createChart('#FamilyChart', data)
+      .setMaxDepth(3)
+
         .setTransitionTime(1000)
         .setCardXSpacing(450)
         .setCardYSpacing(450)
-        .setMaxDepth(5)
 
         .setOrientationVertical()
         .updateMainId(oldestUserId)
@@ -75,43 +83,56 @@ export default function FamilyTree() {
         .setMiniTree(true)
         .setStyle('custom')
         .setOnHoverPathToMain();
+        f3Chart
+        .updateTree({
+          initial: true,
+          tree_position: 'main_to_middle',
+          onComplete: () => {
+            let f3EditTree = createEditTree();
+            f3Card.setOnCardClick((e, d) => {
+              f3EditTree.open(d);
+        
+              if (f3EditTree.isAddingRelative()) return;
+              f3Card.onCardClickDefault(e, d);
+            });
+        
+            f3Chart
+            .updateTree({
+              initial: true,
+              tree_position: 'main_to_middle',
+              onComplete: onCompleteFunction
+            });        f3EditTree.open(f3Chart.getMainDatum());
+    
+          // Store references for cleanup
+          chartRef.current = f3Chart;
+          editTreeRef.current = f3EditTree;
+          }
+        });
+      
 
+       
+    }
+
+    function createEditTree() {
       const f3EditTree = f3Chart.editTree()
-        .fixed(true)
+      .fixed(true)
+      .setFields(["first name", "last name", "arabic name", "birthday", "avatar",{id: "avatar image", label: "avatar image", type: "image"}])
+      .setEditFirst(false);
 
+    f3EditTree.setEdit();
+    f3EditTree.setOnChange((data) => {    
+        createUser(data);
+    });
 
-        .setFields(["first name", "last name", "arabic name", "birthday", "avatar",{id: "avatar image", label: "avatar image", type: "image"}])
-        .setEditFirst(false);
-
-      f3EditTree.setEdit();
-      f3EditTree.setOnChange((data) => {
-        console.log(data)
-        
-          createUser(data);
-        
-        
-      });
-
-
-      f3Card.setOnCardClick((e, d) => {
-        f3EditTree.open(d);
-
-        if (f3EditTree.isAddingRelative()) return;
-        f3Card.onCardClickDefault(e, d);
-      });
-
-      f3Chart.updateTree({ initial: true });
-      f3EditTree.open(f3Chart.getMainDatum());
-
-      // Store references for cleanup
-      chartRef.current = f3Chart;
-      editTreeRef.current = f3EditTree;
+    return f3EditTree;
     }
 
 
 
-    //    create( new Map(usersData.map(d => [d.id, d]))
-
+    function onCompleteFunction(){
+      console.log("ONCVO<P{LEte")
+      setLoading( false)
+    }
     
     create( new Map(usersData.map(d => [d.id, d]))
   );
@@ -458,5 +479,10 @@ async function formatDataForDatabase(data) {
   }
 }
 
-return <div className="f3 f3-cont" id="FamilyChart" ref={containerRef}></div>;
+return <div className="f3 f3-cont" id="FamilyChart" ref={containerRef}>
+{loading && (
+        <div className={styles.loading}>
+          {/* The loading spinner is created by CSS ::after pseudo-element */}
+        </div>
+      )}</div>;
 }

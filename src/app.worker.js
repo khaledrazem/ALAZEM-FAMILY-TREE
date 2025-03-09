@@ -15,12 +15,12 @@ import { extent } from 'd3';  // ✅ Import only what you need
     
         const data_stash = single_parent_empty_card ? createRelsToAdd(data) : data;
         sortChildrenWithSpouses(data_stash);
-    
+
         const main = (main_id !== null && data_stash.has(main_id)) ? data_stash.get(main_id) : data_stash.values().next().value;
         const tree_children = calculateTreePositions(main, 'children', false, max_depth);
         const tree_parents = calculateTreePositions(main, 'parents', true, max_depth);
         console.log(2)
-  
+
         for (const d of data_stash.values()) d.main = d.id === main.id;
   
         levelOutEachSide(tree_parents, tree_children);
@@ -47,6 +47,8 @@ import { extent } from 'd3';  // ✅ Import only what you need
         postMessage({data: tree, data_stash, dim, main_id: main.id, is_horizontal});
     
         function calculateTreePositions(datum, rt, is_ancestry, max_depth = Infinity) {
+
+            let shortlist = getFamilyTree(datum,max_depth)
             const hierarchyGetter = rt === "children" ? hierarchyGetterChildren : hierarchyGetterParents;
             const d3_tree = d3tree().nodeSize([node_separation, level_separation]).separation(separation);
             const root = hierarchy(datum, hierarchyGetter);
@@ -72,11 +74,11 @@ import { extent } from 'd3';  // ✅ Import only what you need
             function someSpouses(a, b) { return hasSpouses(a) || hasSpouses(b); }
     
             function hierarchyGetterChildren(d) {
-                return d.rels.children ? d.rels.children.map(id => data_stash.get(id)).filter(Boolean) : [];
+                return d.rels.children ? d.rels.children.map(id => shortlist.get(id)).filter(Boolean) : [];
             }
     
             function hierarchyGetterParents(d) {
-                return [d.rels.father, d.rels.mother].filter(id => id && data_stash.has(id)).map(id => data_stash.get(id));
+                return [d.rels.father, d.rels.mother].filter(id => id && shortlist.has(id)).map(id => shortlist.get(id));
             }
     
             function offsetOnPartners(a, b) {
@@ -139,7 +141,6 @@ import { extent } from 'd3';  // ✅ Import only what you need
                     continue;
                      }
                         const spouse = {data: data_stash.get(sp_id), added: true};
-                        console.log(spouse)
 
                         spouse.x = d.x - (node_separation * (j + 1)) * side;
                         spouse.y = d.y;
@@ -287,4 +288,80 @@ import { extent } from 'd3';  // ✅ Import only what you need
         all_rels = [r.father, r.mother, ...(r.spouses || []), ...(r.children || [])].filter(v => v);
       return all_rels.every(rel_id => data.some(d => d?.data?.id === rel_id))
     }
+
+    function getFamilyTree(mainDatum, max_depth = Infinity) {
+      const familyMap = new Map();
+  
+      function addDatumToMap(datum) {
+          if (!datum || familyMap.has(datum.id)) return;
+          familyMap.set(datum.id, datum);
+      }
+  
+      function getRelatives(datum, type) {
+          if (!datum.rels || !datum.rels[type]) return [];
+          return datum.rels[type].map(id => data_stash.get(id)).filter(Boolean);
+      }
+  
+      function exploreGenerations(datum, depth, isAncestry) {
+          if (depth > max_depth || !datum) return;
+  
+          addDatumToMap(datum);
+  
+          // Get spouses and add them
+          const spouses = getRelatives(datum, 'spouses');
+          spouses.forEach(addDatumToMap);
+  
+          if (isAncestry) {
+              // Explore parents
+              const parents = [
+                data_stash.get(datum.rels.father),
+                data_stash.get(datum.rels.mother)
+              ].filter(Boolean);
+              parents.forEach(parent => {
+                  addDatumToMap(parent);
+                  exploreGenerations(parent, depth + 1, true);
+              });
+  
+              // Get siblings (children of the same parents)
+              parents.forEach(parent => {
+                  const siblings = getRelatives(parent, 'children').filter(sib => sib.id !== datum.id);
+                  siblings.forEach(sibling => {
+                      addDatumToMap(sibling);
+                      getRelatives(sibling, 'spouses').forEach(addDatumToMap);
+                  });
+              });
+          } else {
+              // Explore children
+              const children = getRelatives(datum, 'children');
+              children.forEach(child => {
+                  addDatumToMap(child);
+                  exploreGenerations(child, depth + 1, false);
+              });
+  
+              // Get siblings (other children of the same parents)
+              const father = data_stash.get(datum.rels.father);
+              const mother = data_stash.get(datum.rels.mother);
+              [father, mother].forEach(parent => {
+                  if (parent) {
+                      const siblings = getRelatives(parent, 'children').filter(sib => sib.id !== datum.id);
+                      siblings.forEach(sibling => {
+                          addDatumToMap(sibling);
+                          getRelatives(sibling, 'spouses').forEach(addDatumToMap);
+                      });
+                  }
+              });
+          }
+      }
+  
+      // Start by adding the main datum
+      addDatumToMap(mainDatum);
+  
+      // Explore ancestors and descendants up to the max depth
+      exploreGenerations(mainDatum, 1, true);  // For ancestors
+      exploreGenerations(mainDatum, 1, false); // For descendants
+  
+      return familyMap;
+  }
+
+  
     })

@@ -86,18 +86,20 @@ import Worker from '@/app.worker';
       tree_data.forEach(d => {d.data.hide_rels = hide_rels; toggleRels(d, hide_rels);});
     }
     
-    function checkIfRelativesConnectedWithoutPerson(datum, data_stash) {
+    function checkIfRelativesConnectedWithoutPerson(datum, data_stash, tree) {   
+      return true;   
       const r = datum.rels,
         r_ids = [r.father, r.mother, ...(r.spouses || []), ...(r.children || [])].filter(r_id => !!r_id),
         rels_not_to_main = [];
     
       for (let i = 0; i < r_ids.length; i++) {
-        const line = findPersonLineToMain(data_stash.get(r_ids[i]), [datum]);
+        const line = findPersonLineToMain(data_stash.get(r_ids[i]), [datum], tree);
         if (!line) {rels_not_to_main.push(r_ids[i]); break;}
       }
+
       return rels_not_to_main.length === 0;
     
-      function findPersonLineToMain(datum, without_persons) {
+      function findPersonLineToMain(datum, without_persons, tree) {
         let line;
         if (isM(datum)) line = [datum];
         checkIfAnyRelIsMain(datum, [datum]);
@@ -113,7 +115,7 @@ import Worker from '@/app.worker';
           function runAllRels(f) {
             const r = d0.rels;
             [r.father, r.mother, ...(r.spouses || []), ...(r.children || [])]
-              .filter(d_id => (d_id && ![...without_persons, ...history].find(d => d.id === d_id)))
+              .filter(d_id => (d_id && ![...without_persons, ...history].find(d => d.id === d_id) && tree.data.find(d => d.data.id === d_id)))
               .forEach(d_id => f(d_id));
           }
     
@@ -153,10 +155,10 @@ import Worker from '@/app.worker';
         form_creator.editable = true;
         form_creator.onCancel = onCancel;
       }
-      if (form_creator.onDelete) form_creator.can_delete = checkIfRelativesConnectedWithoutPerson(datum, store.getData());
+      if (form_creator.onDelete) form_creator.can_delete = checkIfRelativesConnectedWithoutPerson(datum, store.getData(), store.state.tree);
     
       if (editFirst) form_creator.editable = true;
-    
+
       form_creator.gender_field = {
         id: 'gender', 
         type: 'switch',
@@ -164,7 +166,7 @@ import Worker from '@/app.worker';
         initial_value: datum.data.gender,
         options: [{value: 'M', label: 'Male'}, {value: 'F', label: 'Female'}]
       };
-    
+
       fields.forEach(d => {
         const field = {
           id: d.id,
@@ -202,7 +204,7 @@ import Worker from '@/app.worker';
     }
     
     function deletePerson(datum, data_stash) {
-      if (!checkIfRelativesConnectedWithoutPerson(datum, data_stash)) return {success: false, error: 'checkIfRelativesConnectedWithoutPerson'}
+     // if (!checkIfRelativesConnectedWithoutPerson(datum, data_stash, store.state.tree)) return {success: false, error: 'checkIfRelativesConnectedWithoutPerson'}
       executeDelete();
       return {success: true};
     
@@ -1110,10 +1112,8 @@ import Worker from '@/app.worker';
       else if (props.cardHtml) updateCardsHtml(props.cardHtml, tree, Card, props);
       else updateCards(svg, tree, Card, props);
       updateLinks(svg, tree, props);
-    
       const tree_position = props.tree_position || 'fit';
-      if (props.initial) treeFit({svg, svg_dim: svg.getBoundingClientRect(), tree_dim: tree.dim, transition_time: 0});
-      else if (tree_position === 'fit') treeFit({svg, svg_dim: svg.getBoundingClientRect(), tree_dim: tree.dim, transition_time: props.transition_time});
+      if (tree_position === 'fit') treeFit({svg, svg_dim: svg.getBoundingClientRect(), tree_dim: tree.dim, transition_time: props.transition_time});
       else if (tree_position === 'main_to_middle') cardToMiddle({datum: tree.data[0], svg, svg_dim: svg.getBoundingClientRect(), scale: props.scale, transition_time: props.transition_time});
       else ;
     
@@ -2551,15 +2551,15 @@ import Worker from '@/app.worker';
         editFirst: this.editFirst,
         ...props
       });
-    
+
       form_creator.no_edit = this.no_edit;
       const form_cont = f3.handlers.formInfoSetup(form_creator, this.closeForm.bind(this));
-    
+
       this.form_cont.innerHTML = '';
       this.form_cont.appendChild(form_cont);
-    
+
       this.openForm();
-    
+
       function postSubmit(props) {
         if (this.addRelativeInstance.is_active) this.addRelativeInstance.onChange(datum);
         else if (!props?.delete) this.openFormWithId(datum.id);
@@ -2625,7 +2625,7 @@ import Worker from '@/app.worker';
       this.history.controls = f3.handlers.createHistoryControls(this.cont, this.history);
       this.history.changed();
       this.history.controls.updateButtons();
-    
+
       return this
     
       function historyUpdateTree() {
@@ -2915,7 +2915,7 @@ import Worker from '@/app.worker';
     CreateChart.prototype.updateMain = function(d) {
       this.store.updateMainId(d.data.id);
        this.store.updateTree({});
-    
+
       return this
     };
     
